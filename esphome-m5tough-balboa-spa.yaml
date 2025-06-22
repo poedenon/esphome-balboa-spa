@@ -1,5 +1,6 @@
-# M5Tough Balboa Spa Monitor - Optimized Standalone ESPHome Configuration
+# M5Tough Balboa Spa Monitor - Optimized Standalone ESPHome Configuration with MQTT
 # Reduced CRC errors and improved communication stability
+# Uses MQTT for Home Assistant integration instead of API
 
 esphome:
   name: !secret device_name
@@ -42,11 +43,25 @@ web_server:
     username: !secret web_username
     password: !secret web_password
 
-# API for ESPHome dashboard with optional encryption
-api:
-  # Uncomment the next line and set api_encryption_key in secrets.yaml for encryption
-  # encryption:
-  #   key: !secret api_encryption_key
+# MQTT configuration instead of API
+mqtt:
+  broker: !secret mqtt_broker
+  port: !secret mqtt_port
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  discovery: false
+  discovery_retain: false
+  topic_prefix: home/m5tough-balboa-spa
+    # Birth message (sent when device connects)
+  birth_message:
+    topic: home/m5tough-balboa-spa/LWT
+    payload: "online"
+    retain: true
+  # Will message (sent when device disconnects unexpectedly)
+  will_message:
+    topic: home/m5tough-balboa-spa/LWT
+    payload: "offline"
+    retain: true
 
 # OTA updates with optional password protection
 ota:

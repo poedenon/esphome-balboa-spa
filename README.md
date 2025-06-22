@@ -11,12 +11,14 @@ This project is based on the excellent [ESPHome Balboa Component](https://github
 - **Web Interface**: ESPHome web interface accessible from any device
 - **RS485 Communication**: Direct communication with Balboa spa control systems via Grove Port A
 - **ESPHome Integration**: Native ESPHome platform with optimized performance
-- **Basic Controls**: Set temperature, control jets, lights, and heating modes via web interface
+- **MQTT Integration**: Full MQTT broker connectivity with Last Will Testament (LWT) messages
+- **Home Automation Controls**: Control spa functions via MQTT commands
+- **Status Monitoring**: Real-time status updates via MQTT topics
 
 ### Todo List
 - **Touch Screen Display**: M5Tough TFT display output for local spa status and controls
-- **MQTT Integration**: MQTT broker connectivity for enhanced home automation integration
 - **Enhanced UI**: Custom touch interface for the M5Tough display
+- **Home Assistant Discovery**: Auto-discovery integration (currently disabled for manual MQTT setup)
 
 ## Hardware Requirements
 
@@ -97,24 +99,82 @@ The main configuration is in `esphome-m5tough-balboa-spa.yaml`. Key settings:
 - **Display**: M5Tough TFT display (todo - not yet implemented)
 - **Sensors**: Temperature sensors with ESPHome Balboa component
 - **Climate**: Thermostat control for spa temperature
+- **MQTT**: Full MQTT integration with configurable broker, authentication, and LWT messages
 
 ## Current Functionality
 
 ### Web Interface Access
 Once uploaded, access the spa controls via:
 1. **ESPHome Web Interface**: Navigate to your device's IP address in a browser
-2. **Home Assistant**: Auto-discovered if you have Home Assistant on your network
-3. **API**: ESPHome provides a native API for integration
+2. **MQTT Control**: Send commands via MQTT topics for automation
+3. **Home Automation**: Integrate with any MQTT-compatible system
+
+### MQTT Control Topics
+
+The system uses MQTT for real-time control and monitoring:
+
+#### Control Commands (Publish to these topics):
+```bash
+# Light Control
+home/m5tough-balboa-spa/switch/spa_light/command
+# Payloads: "ON" or "OFF"
+
+# Jet 1 Control  
+home/m5tough-balboa-spa/switch/spa_jet_1/command
+# Payloads: "ON" or "OFF"
+
+# Jet 2 Control
+home/m5tough-balboa-spa/switch/spa_jet_2/command  
+# Payloads: "ON" or "OFF"
+
+# Temperature Control
+home/m5tough-balboa-spa/climate/spa_thermostat/command
+# Payloads: JSON format for temperature setting
+```
+
+#### Status Monitoring (Subscribe to these topics):
+```bash
+# Device Status (LWT)
+home/m5tough-balboa-spa/LWT
+# Payloads: "online" or "offline"
+
+# Temperature Readings
+home/m5tough-balboa-spa/sensor/spa_current_temperature/state
+home/m5tough-balboa-spa/sensor/spa_target_temperature/state
+
+# Switch States
+home/m5tough-balboa-spa/switch/spa_light/state
+home/m5tough-balboa-spa/switch/spa_jet_1/state
+home/m5tough-balboa-spa/switch/spa_jet_2/state
+```
 
 ### Available Controls
 The system currently monitors and controls:
-- **Temperature**: Current and target temperature readings
-- **Climate Control**: Heat mode (Off/Heat/Rest/Ready)
-- **Jets**: Jet 1 and Jet 2 on/off control  
-- **Light**: Spa light on/off control
+- **Temperature**: Current and target temperature readings via MQTT
+- **Climate Control**: Heat mode (Off/Heat/Rest/Ready) via MQTT and web interface
+- **Jets**: Jet 1 and Jet 2 on/off control via MQTT commands
+- **Light**: Spa light on/off control via MQTT commands
 - **Heater**: Heater operation status monitoring
 - **Filter**: Filter pump operation status
-- **Connection**: Real-time RS485 connection status
+- **Connection**: Real-time RS485 and MQTT connection status with LWT
+
+## MQTT Configuration
+
+### Broker Setup
+Configure your MQTT broker details in `secrets.yaml`:
+```yaml
+mqtt_broker: "your_mqtt_broker_ip"
+mqtt_port: 1883
+mqtt_username: "your_mqtt_username" 
+mqtt_password: "your_mqtt_password"
+```
+
+### Features Implemented
+- **Last Will Testament (LWT)**: Device reports "online"/"offline" status
+- **Retained Messages**: Status persists on broker for new subscribers
+- **Custom Topic Prefix**: `home/m5tough-balboa-spa/` for organized MQTT namespace
+- **Quality of Service**: Reliable message delivery
+- **Authentication**: Username/password authentication support
 
 ## Future Enhancements (Todo)
 
@@ -124,11 +184,11 @@ The system currently monitors and controls:
 - Real-time status display on device
 - Temperature, jets, and light status visualization
 
-### MQTT Integration  
-- MQTT broker connectivity for enhanced automation
-- Integration with non-Home Assistant systems
-- Custom MQTT topics for spa status and control
-- Retained messages for status persistence
+### Enhanced MQTT Features
+- Home Assistant MQTT discovery (currently disabled for manual setup)
+- Additional sensor data publishing
+- MQTT-based configuration updates
+- Advanced automation triggers
 
 ## Troubleshooting
 
@@ -160,6 +220,25 @@ Watch for:
 - CRC error messages
 - Status change notifications
 - WiFi connection status
+- MQTT connection and authentication status
+- LWT message publishing
+
+### MQTT Troubleshooting
+
+#### No MQTT Communication
+- **Verify Broker**: Ensure MQTT broker is running and accessible
+- **Check Credentials**: Verify username/password in `secrets.yaml`
+- **Network Access**: Confirm device can reach broker IP/port
+- **Topic Structure**: Verify topic paths match the documented format
+
+#### Monitor MQTT Traffic
+```bash
+# Subscribe to all device topics
+mosquitto_sub -h YOUR_BROKER_IP -u YOUR_USERNAME -P YOUR_PASSWORD -t "home/m5tough-balboa-spa/#"
+
+# Monitor LWT status
+mosquitto_sub -h YOUR_BROKER_IP -u YOUR_USERNAME -P YOUR_PASSWORD -t "home/m5tough-balboa-spa/LWT"
+```
 
 ## Technical Details
 
