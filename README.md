@@ -278,15 +278,10 @@ mosquitto_sub -h YOUR_BROKER_IP -u YOUR_USERNAME -P YOUR_PASSWORD -t "home/m5tou
 ## 🙏 Credits and References
 
 This project builds upon excellent work from the ESPHome community:
-- **Base Implementation**: [ESPHome Balboa Component](https://github.com/mstaiger/esphome-balboa)
+- **[ESPHome Balboa Spa (Dakoriki)](https://github.com/Dakoriki/ESPHome-Balboa-Spa)**
+- **[ESPHome Balboa Spa (brianfeucht)](https://github.com/brianfeucht/ESPHome-Balboa-Spa)** 
+- **[ESPHome Balboa Spa (mhetzi)](https://github.com/mhetzi/esphome-balboa-spa)** 
 - **Protocol Documentation**: ESPHome Balboa component documentation
 - **Hardware Platform**: M5Stack M5Tough ESP32 development board
 - **Framework**: ESPHome home automation platform
 
-## 🤝 Contributing
-
-Future contributions welcome for:
-- M5Tough display implementation
-- MQTT integration features  
-- Touch screen interface development
-- Protocol optimization and error handling improvements
