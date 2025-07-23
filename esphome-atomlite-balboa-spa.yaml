@@ -74,12 +74,7 @@ uart:
   rx_buffer_size: 1024
 
 external_components:
-  # - source: ./custom_components
-
-  - source:
-      type: git
-      url: https://github.com/brianfeucht/esphome-balboa-spa
-      ref: main
+  - source: ./components
     components: [balboa_spa]
 
 
@@ -147,6 +142,18 @@ sensor:
       icon: "mdi:sleep"
       filters:
         - throttle: 5s
+    hour:
+      name: "Spa Hour"
+      id: spa_hour
+      icon: "mdi:clock-time-four-outline"
+      filters:
+        - throttle: 5s
+    minute:
+      name: "Spa Minute"
+      id: spa_minute
+      icon: "mdi:clock-time-four-outline"
+      filters:
+        - throttle: 5s
   - platform: template
     name: "Spa Current Temperature"
     id: spa_current_temp
@@ -210,6 +217,20 @@ text_sensor:
       entity_category: diagnostic
   - platform: version
     name: "ESPHome Version"
+    entity_category: diagnostic
+  - platform: template
+    name: "Spa Time"
+    id: spa_time
+    lambda: |-
+      int hour = (int)id(spa_hour).state;
+      int minute = (int)id(spa_minute).state;
+      if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+        return {};
+      }
+      char buf[6];
+      snprintf(buf, sizeof(buf), "%02d:%02d", hour, minute);
+      return {buf};
+    update_interval: 30s
     entity_category: diagnostic
 
 button:

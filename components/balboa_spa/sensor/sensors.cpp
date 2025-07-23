@@ -40,6 +40,12 @@ void BalboaSpaSensors::update(SpaState* spaState) {
                 return;
             }
             break;
+        case BalboaSpaSensorType::HOUR:
+            sensor_state_value = spaState->hour;
+            break;
+        case BalboaSpaSensorType::MINUTE:
+            sensor_state_value = spaState->minutes;
+            break;
         default:
             ESP_LOGD(TAG, "Spa/Sensors/UnknownSensorType: SensorType Number: %d", sensor_type);
             // Unknown enum value. Ignore

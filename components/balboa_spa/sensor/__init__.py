@@ -18,6 +18,8 @@ CONF_HIGHRANGE = "highrange"
 CONF_CIRCULATION = "circulation"
 CONF_RESTMODE = "restmode"
 CONF_HEATSTATE = "heatstate"
+CONF_HOUR = "hour"
+CONF_MINUTE = "minute"
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -37,12 +39,18 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_HEATSTATE): sensor.sensor_schema(
             SpaSensor,
         ),
+        cv.Optional(CONF_HOUR): sensor.sensor_schema(
+            SpaSensor,
+        ),
+        cv.Optional(CONF_MINUTE): sensor.sensor_schema(
+            SpaSensor,
+        ),
     })
 
 async def to_code(config):
     parent = await cg.get_variable(config[CONF_SPA_ID])
 
-    for sensor_type in [CONF_BLOWER, CONF_HIGHRANGE, CONF_CIRCULATION, CONF_RESTMODE, CONF_HEATSTATE]:
+    for sensor_type in [CONF_BLOWER, CONF_HIGHRANGE, CONF_CIRCULATION, CONF_RESTMODE, CONF_HEATSTATE, CONF_HOUR, CONF_MINUTE]:
         if conf := config.get(sensor_type):
             var = await sensor.new_sensor(conf)
             cg.add(var.set_parent(parent))
