@@ -40,10 +40,10 @@ void BalboaSpaSensors::update(SpaState* spaState) {
                 return;
             }
             break;
-        case BalboaSpaSensorType::HOUR:
+        case BalboaSpaSensorType::SPA_CLOCK_HOUR:
             sensor_state_value = spaState->hour;
             break;
-        case BalboaSpaSensorType::MINUTE:
+        case BalboaSpaSensorType::SPA_CLOCK_MINUTE:
             sensor_state_value = spaState->minutes;
             break;
         default:

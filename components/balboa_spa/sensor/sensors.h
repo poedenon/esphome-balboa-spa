@@ -16,8 +16,8 @@ public:
     CIRCULATION = 3,
     RESTMODE = 4,
     HEATSTATE = 5,
-    HOUR = 6,
-    MINUTE = 7,
+    SPA_CLOCK_HOUR = 6,
+    SPA_CLOCK_MINUTE = 7,
   };
 
 public:

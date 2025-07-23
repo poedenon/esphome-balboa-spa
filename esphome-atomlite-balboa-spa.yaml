@@ -12,7 +12,7 @@ esp32:
     type: arduino
 
 logger:
-  level: DEBUG
+  level: INFO
   baud_rate: 115200
   logs:
     uart.arduino_esp32: WARN
@@ -72,6 +72,11 @@ uart:
   parity: NONE
   stop_bits: 1
   rx_buffer_size: 1024
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Chicago"
 
 external_components:
   - source: ./components
@@ -142,15 +147,15 @@ sensor:
       icon: "mdi:sleep"
       filters:
         - throttle: 5s
-    hour:
-      name: "Spa Hour"
-      id: spa_hour
+    spa_clock_hour:
+      name: "Spa Clock Hour"
+      id: spa_clock_hour
       icon: "mdi:clock-time-four-outline"
       filters:
         - throttle: 5s
-    minute:
-      name: "Spa Minute"
-      id: spa_minute
+    spa_clock_minute:
+      name: "Spa Clock Minute"
+      id: spa_clock_minute
       icon: "mdi:clock-time-four-outline"
       filters:
         - throttle: 5s
@@ -222,21 +227,33 @@ text_sensor:
     name: "Spa Time"
     id: spa_time
     lambda: |-
-      int hour = (int)id(spa_hour).state;
-      int minute = (int)id(spa_minute).state;
+      int hour = (int)id(spa_clock_hour).state;
+      int minute = (int)id(spa_clock_minute).state;
       if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
         return {};
       }
       char buf[6];
       snprintf(buf, sizeof(buf), "%02d:%02d", hour, minute);
       return {buf};
-    update_interval: 30s
+    update_interval: 120s
     entity_category: diagnostic
 
 button:
   - platform: restart
     name: "Restart"
     entity_category: diagnostic
+  - platform: template
+    name: "Sync Spa Time"
+    id: sync_spa_time
+    entity_category: diagnostic
+    on_press:
+      then:
+        - lambda: |-
+            auto now = id(sntp_time).now();
+            int hour = now.hour;
+            int minute = now.minute;
+            id(spa)->set_hour(hour);
+            id(spa)->set_minute(minute);
 
 interval:
   - interval: 60s
