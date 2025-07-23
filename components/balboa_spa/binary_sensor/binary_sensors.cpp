@@ -49,6 +49,12 @@ void BalboaSpaBinarySensors::update(SpaState* spaState) {
         case BalboaSpaBinarySensorType::CONNECTED:
             sensor_state_value = spa->is_communicating();
             break;
+        case BalboaSpaBinarySensorType::FILTER1_ACTIVE:
+            sensor_state_value = spa->is_filter1_enabled();
+            break;
+        case BalboaSpaBinarySensorType::FILTER2_ACTIVE:
+            sensor_state_value = spa->is_filter2_enabled();
+            break;
         default:
             ESP_LOGD(TAG, "Spa/BSensors/UnknownSensorType: SensorType Number: %d", sensor_type);
             // Unknown enum value. Ignore

@@ -12,7 +12,7 @@ esp32:
     type: arduino
 
 logger:
-  level: INFO
+  level: DEBUG
   baud_rate: 115200
   logs:
     uart.arduino_esp32: WARN
@@ -206,6 +206,17 @@ binary_sensor:
   - platform: status
     name: "Device Status"
     entity_category: diagnostic
+  - platform: balboa_spa
+    filter1_active:
+      name: "Filter 1 Enabled"
+      id: spa_filter1_active
+      icon: "mdi:filter"
+      entity_category: diagnostic
+    filter2_active:
+      name: "Filter 2 Enabled"
+      id: spa_filter2_active
+      icon: "mdi:filter"
+      entity_category: diagnostic
 
 text_sensor:
   - platform: wifi_info

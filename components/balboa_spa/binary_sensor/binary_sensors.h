@@ -17,7 +17,9 @@ public:
     CIRCULATION,
     RESTMODE,
     HEATSTATE,
-    CONNECTED
+    CONNECTED,
+    FILTER1_ACTIVE,
+    FILTER2_ACTIVE
   };
 
 public:

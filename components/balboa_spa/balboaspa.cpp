@@ -20,6 +20,22 @@ void BalboaSpa::update() {
         status_clear_error();
     }
 
+    // Periodically request filter settings every 60 seconds
+    static uint32_t last_filtersettings_request = 0;
+    if (now - last_filtersettings_request > 60000) {
+        if (client_id != 0) {
+            output_queue.push(client_id);
+            output_queue.push(0xBF);
+            output_queue.push(0x22);
+            output_queue.push(0x01);
+            output_queue.push(0x00);
+            output_queue.push(0x00);
+            ESP_LOGI(TAG, "Requesting filter settings (periodic)");
+            rs485_send();
+        }
+        last_filtersettings_request = now;
+    }
+
     while (available()) {
       read_serial();
     }
@@ -484,6 +500,7 @@ void BalboaSpa::decodeState() {
 }
 
 void BalboaSpa::decodeFilterSettings() {
+    ESP_LOGW(TAG, "decodeFilterSettings() called");
     spaFilterSettings.filter1_hour = input_queue[5];
     spaFilterSettings.filter1_minute = input_queue[6];
     spaFilterSettings.filter1_duration_hour = input_queue[7];

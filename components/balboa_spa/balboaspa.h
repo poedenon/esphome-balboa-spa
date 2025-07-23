@@ -60,6 +60,8 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     void set_esphome_temp_scale(TEMP_SCALE scale);
 
     bool is_communicating();
+    bool is_filter1_enabled() const { return true; } // Filter 1 is always enabled
+    bool is_filter2_enabled() const { return spaFilterSettings.filter2_enable == 1; }
 
     void register_listener(const std::function<void(SpaState*)> &func) {this->listeners_.push_back(func);}
 
