@@ -30,7 +30,7 @@ void BalboaSpa::update() {
             output_queue.push(0x01);
             output_queue.push(0x00);
             output_queue.push(0x00);
-            ESP_LOGI(TAG, "Requesting filter settings (periodic)");
+            ESP_LOGD(TAG, "Requesting filter settings (periodic)");
             rs485_send();
         }
         last_filtersettings_request = now;
@@ -500,7 +500,6 @@ void BalboaSpa::decodeState() {
 }
 
 void BalboaSpa::decodeFilterSettings() {
-    ESP_LOGW(TAG, "decodeFilterSettings() called");
     spaFilterSettings.filter1_hour = input_queue[5];
     spaFilterSettings.filter1_minute = input_queue[6];
     spaFilterSettings.filter1_duration_hour = input_queue[7];
