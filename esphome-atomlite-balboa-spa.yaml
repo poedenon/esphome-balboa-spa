@@ -248,6 +248,46 @@ text_sensor:
       return {buf};
     update_interval: 120s
     entity_category: diagnostic
+  - platform: template
+    name: "Filter 1 Schedule"
+    id: spa_filter1_schedule
+    lambda: |-
+      // Get filter timing from the spa object
+      int start_hour = id(spa)->get_filter1_start_hour();
+      int start_minute = id(spa)->get_filter1_start_minute();
+      int duration_hour = id(spa)->get_filter1_duration_hour();
+      int duration_minute = id(spa)->get_filter1_duration_minute();
+      
+      if (start_hour < 0 || start_hour > 23 || start_minute < 0 || start_minute > 59) {
+        return {};
+      }
+      
+      char buf[32];
+      snprintf(buf, sizeof(buf), "%02d:%02d (%02d:%02d)", 
+               start_hour, start_minute, duration_hour, duration_minute);
+      return {buf};
+    update_interval: 60s
+    entity_category: diagnostic
+  - platform: template
+    name: "Filter 2 Schedule"
+    id: spa_filter2_schedule
+    lambda: |-
+      // Get filter timing from the spa object
+      int start_hour = id(spa)->get_filter2_start_hour();
+      int start_minute = id(spa)->get_filter2_start_minute();
+      int duration_hour = id(spa)->get_filter2_duration_hour();
+      int duration_minute = id(spa)->get_filter2_duration_minute();
+      
+      if (start_hour < 0 || start_hour > 23 || start_minute < 0 || start_minute > 59) {
+        return {};
+      }
+      
+      char buf[32];
+      snprintf(buf, sizeof(buf), "%02d:%02d (%02d:%02d)", 
+               start_hour, start_minute, duration_hour, duration_minute);
+      return {buf};
+    update_interval: 60s
+    entity_category: diagnostic
 
 button:
   - platform: restart

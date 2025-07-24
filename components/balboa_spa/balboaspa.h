@@ -62,6 +62,18 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     bool is_communicating();
     bool is_filter1_enabled() const { return true; } // Filter 1 is always enabled
     bool is_filter2_enabled() const { return spaFilterSettings.filter2_enable == 1; }
+    
+    // Filter 1 timing
+    uint8_t get_filter1_start_hour() const { return spaFilterSettings.filter1_hour; }
+    uint8_t get_filter1_start_minute() const { return spaFilterSettings.filter1_minute; }
+    uint8_t get_filter1_duration_hour() const { return spaFilterSettings.filter1_duration_hour; }
+    uint8_t get_filter1_duration_minute() const { return spaFilterSettings.filter1_duration_minute; }
+    
+    // Filter 2 timing
+    uint8_t get_filter2_start_hour() const { return spaFilterSettings.filter2_hour; }
+    uint8_t get_filter2_start_minute() const { return spaFilterSettings.filter2_minute; }
+    uint8_t get_filter2_duration_hour() const { return spaFilterSettings.filter2_duration_hour; }
+    uint8_t get_filter2_duration_minute() const { return spaFilterSettings.filter2_duration_minute; }
 
     void register_listener(const std::function<void(SpaState*)> &func) {this->listeners_.push_back(func);}
 

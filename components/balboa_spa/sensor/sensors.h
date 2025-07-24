@@ -18,6 +18,14 @@ public:
     HEATSTATE = 5,
     SPA_CLOCK_HOUR = 6,
     SPA_CLOCK_MINUTE = 7,
+    FILTER1_START_HOUR = 8,
+    FILTER1_START_MINUTE = 9,
+    FILTER1_DURATION_HOUR = 10,
+    FILTER1_DURATION_MINUTE = 11,
+    FILTER2_START_HOUR = 12,
+    FILTER2_START_MINUTE = 13,
+    FILTER2_DURATION_HOUR = 14,
+    FILTER2_DURATION_MINUTE = 15,
   };
 
 public:
@@ -29,6 +37,7 @@ public:
 
   private:
     BalboaSpaSensorType sensor_type;
+    BalboaSpa *parent;
 };
 
 }  // namespace balboa_spa

@@ -7,6 +7,7 @@ namespace balboa_spa {
 static const char *TAG = "BalboaSpa.sensors";
 
 void BalboaSpaSensors::set_parent(BalboaSpa *parent) {
+    this->parent = parent;
     parent->register_listener([this](SpaState* spaState){ this->update(spaState); });
 }
 
@@ -45,6 +46,30 @@ void BalboaSpaSensors::update(SpaState* spaState) {
             break;
         case BalboaSpaSensorType::SPA_CLOCK_MINUTE:
             sensor_state_value = spaState->minutes;
+            break;
+        case BalboaSpaSensorType::FILTER1_START_HOUR:
+            sensor_state_value = parent->get_filter1_start_hour();
+            break;
+        case BalboaSpaSensorType::FILTER1_START_MINUTE:
+            sensor_state_value = parent->get_filter1_start_minute();
+            break;
+        case BalboaSpaSensorType::FILTER1_DURATION_HOUR:
+            sensor_state_value = parent->get_filter1_duration_hour();
+            break;
+        case BalboaSpaSensorType::FILTER1_DURATION_MINUTE:
+            sensor_state_value = parent->get_filter1_duration_minute();
+            break;
+        case BalboaSpaSensorType::FILTER2_START_HOUR:
+            sensor_state_value = parent->get_filter2_start_hour();
+            break;
+        case BalboaSpaSensorType::FILTER2_START_MINUTE:
+            sensor_state_value = parent->get_filter2_start_minute();
+            break;
+        case BalboaSpaSensorType::FILTER2_DURATION_HOUR:
+            sensor_state_value = parent->get_filter2_duration_hour();
+            break;
+        case BalboaSpaSensorType::FILTER2_DURATION_MINUTE:
+            sensor_state_value = parent->get_filter2_duration_minute();
             break;
         default:
             ESP_LOGD(TAG, "Spa/Sensors/UnknownSensorType: SensorType Number: %d", sensor_type);

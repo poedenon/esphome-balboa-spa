@@ -506,7 +506,7 @@ void BalboaSpa::decodeFilterSettings() {
     spaFilterSettings.filter1_duration_hour = input_queue[7];
     spaFilterSettings.filter1_duration_minute = input_queue[8];
     spaFilterSettings.filter2_enable = bitRead(input_queue[9], 7); // check
-    spaFilterSettings.filter2_hour = input_queue[9] ^ (spaFilterSettings.filter2_enable << 7); // check
+    spaFilterSettings.filter2_hour = input_queue[9] & 0x1F; // Clear bit 7, keep bits 0-4 for hour
     spaFilterSettings.filter2_minute = input_queue[10];
     spaFilterSettings.filter2_duration_hour = input_queue[11];
     spaFilterSettings.filter2_duration_minute = input_queue[12];

@@ -20,6 +20,14 @@ CONF_RESTMODE = "restmode"
 CONF_HEATSTATE = "heatstate"
 CONF_CLOCK_HOUR = "spa_clock_hour"
 CONF_CLOCK_MINUTE = "spa_clock_minute"
+CONF_FILTER1_START_HOUR = "filter1_start_hour"
+CONF_FILTER1_START_MINUTE = "filter1_start_minute"
+CONF_FILTER1_DURATION_HOUR = "filter1_duration_hour"
+CONF_FILTER1_DURATION_MINUTE = "filter1_duration_minute"
+CONF_FILTER2_START_HOUR = "filter2_start_hour"
+CONF_FILTER2_START_MINUTE = "filter2_start_minute"
+CONF_FILTER2_DURATION_HOUR = "filter2_duration_hour"
+CONF_FILTER2_DURATION_MINUTE = "filter2_duration_minute"
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -45,12 +53,36 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_CLOCK_MINUTE): sensor.sensor_schema(
             SpaSensor,
         ),
+        cv.Optional(CONF_FILTER1_START_HOUR): sensor.sensor_schema(
+            SpaSensor,
+        ),
+        cv.Optional(CONF_FILTER1_START_MINUTE): sensor.sensor_schema(
+            SpaSensor,
+        ),
+        cv.Optional(CONF_FILTER1_DURATION_HOUR): sensor.sensor_schema(
+            SpaSensor,
+        ),
+        cv.Optional(CONF_FILTER1_DURATION_MINUTE): sensor.sensor_schema(
+            SpaSensor,
+        ),
+        cv.Optional(CONF_FILTER2_START_HOUR): sensor.sensor_schema(
+            SpaSensor,
+        ),
+        cv.Optional(CONF_FILTER2_START_MINUTE): sensor.sensor_schema(
+            SpaSensor,
+        ),
+        cv.Optional(CONF_FILTER2_DURATION_HOUR): sensor.sensor_schema(
+            SpaSensor,
+        ),
+        cv.Optional(CONF_FILTER2_DURATION_MINUTE): sensor.sensor_schema(
+            SpaSensor,
+        ),
     })
 
 async def to_code(config):
     parent = await cg.get_variable(config[CONF_SPA_ID])
 
-    for sensor_type in [CONF_BLOWER, CONF_HIGHRANGE, CONF_CIRCULATION, CONF_RESTMODE, CONF_HEATSTATE, CONF_CLOCK_HOUR, CONF_CLOCK_MINUTE]:
+    for sensor_type in [CONF_BLOWER, CONF_HIGHRANGE, CONF_CIRCULATION, CONF_RESTMODE, CONF_HEATSTATE, CONF_CLOCK_HOUR, CONF_CLOCK_MINUTE, CONF_FILTER1_START_HOUR, CONF_FILTER1_START_MINUTE, CONF_FILTER1_DURATION_HOUR, CONF_FILTER1_DURATION_MINUTE, CONF_FILTER2_START_HOUR, CONF_FILTER2_START_MINUTE, CONF_FILTER2_DURATION_HOUR, CONF_FILTER2_DURATION_MINUTE]:
         if conf := config.get(sensor_type):
             var = await sensor.new_sensor(conf)
             cg.add(var.set_parent(parent))
