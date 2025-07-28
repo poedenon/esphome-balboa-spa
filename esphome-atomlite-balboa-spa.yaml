@@ -12,7 +12,7 @@ esp32:
     type: arduino
 
 logger:
-  level: DEBUG
+  level: INFO
   baud_rate: 115200
   logs:
     uart.arduino_esp32: WARN
@@ -81,12 +81,20 @@ time:
 external_components:
   - source: ./components
     components: [balboa_spa]
+  # - source:
+  #     type: git
+  #     url: https://github.com/brianfeucht/esphome-balboa-spa
+  #     ref: main
+  #   components: [balboa_spa]
+
 
 
 balboa_spa:
   id: spa
   uart_id: spa_uart_bus
   spa_temp_scale: F
+  # esphome_temp_scale: F
+
 
 climate:
   - platform: balboa_spa
@@ -292,6 +300,7 @@ text_sensor:
 button:
   - platform: restart
     name: "Restart"
+    id: spa_restart_btn
     entity_category: diagnostic
   - platform: template
     name: "Sync Spa Time"
@@ -310,3 +319,7 @@ interval:
   - interval: 60s
     then:
       - logger.log: "Spa communication check - monitoring for stability" 
+  - interval: 48h
+    then:
+      - logger.log: "Auto-restarting device for stability"
+      - button.press:  spa_restart_btn
