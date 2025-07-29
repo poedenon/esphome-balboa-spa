@@ -110,21 +110,21 @@ switch:
   - platform: balboa_spa
     balboa_spa_id: spa
     jet1:
-      name: "Spa Jet 1"
-      id: spa_jet1
-      icon: "mdi:turbine"
+      name: "Spa Pump 1"
+      id: spa_pump1
+      icon: "mdi:pump"
       on_turn_on:
-        - logger.log: "Jet 1 turned ON"
+        - logger.log: "Pump 1 turned ON"
       on_turn_off:
-        - logger.log: "Jet 1 turned OFF"
+        - logger.log: "Pump 1 turned OFF"
     jet2:
-      name: "Spa Jet 2"
-      id: spa_jet2
-      icon: "mdi:turbine"
+      name: "Spa Pump 2"
+      id: spa_pump2
+      icon: "mdi:pump"
       on_turn_on:
-        - logger.log: "Jet 2 turned ON"
+        - logger.log: "Pump 2 turned ON"
       on_turn_off:
-        - logger.log: "Jet 2 turned OFF"
+        - logger.log: "Pump 2 turned OFF"
     light:
       name: "Spa Light"
       id: spa_light
@@ -225,6 +225,21 @@ binary_sensor:
       id: spa_filter2_active
       icon: "mdi:filter"
       entity_category: diagnostic
+  - platform: template
+    name: "Spa Pump 1 Running"
+    id: spa_pump1_running_template
+    lambda: |-
+      return id(spa_pump1).state;
+    icon: "mdi:pump"
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Spa Pump 2 Running"
+    id: spa_pump2_running_template
+    lambda: |-
+      return id(spa_pump2).state;
+    icon: "mdi:pump"
+    entity_category: diagnostic
 
 text_sensor:
   - platform: wifi_info

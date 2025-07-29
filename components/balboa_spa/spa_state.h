@@ -18,6 +18,9 @@ class SpaState {
         uint8_t jet2 :2;
         uint8_t jet3 :2;
         uint8_t jet4 :2;
+        uint8_t pump1 :2;  // Pump 1 status (0=off, 1=low, 2=high)
+        uint8_t pump2 :2;  // Pump 2 status (0=off, 1=low, 2=high)
+        uint8_t pump3 :2;  // Pump 3 status (0=off, 1=low, 2=high)
         uint8_t blower :1;
         uint8_t light :1;
         uint8_t highrange:1;        

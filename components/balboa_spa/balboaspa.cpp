@@ -494,6 +494,16 @@ void BalboaSpa::decodeState() {
         spaState.light = spa_component_state;
     }
 
+    // Pump status is the same as jet status (they control the same pumps)
+    // Pump 1 = Jet 1
+    spaState.pump1 = spaState.jet1;
+    
+    // Pump 2 = Jet 2  
+    spaState.pump2 = spaState.jet2;
+    
+    // Pump 3 = Jet 3
+    spaState.pump3 = spaState.jet3;
+
     // TODO: callback on newState
 
     last_state_crc = input_queue[input_queue[1]];
