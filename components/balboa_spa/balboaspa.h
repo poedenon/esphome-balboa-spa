@@ -75,6 +75,13 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     uint8_t get_filter2_duration_hour() const { return spaFilterSettings.filter2_duration_hour; }
     uint8_t get_filter2_duration_minute() const { return spaFilterSettings.filter2_duration_minute; }
 
+    // Debug methods for pump status
+    uint8_t get_pump_status_byte() const { return last_pump_status_byte; }
+    uint8_t get_status_byte_16() const { return last_status_byte_16; }
+    uint8_t get_status_byte_17() const { return last_status_byte_17; }
+    uint8_t get_status_byte_18() const { return last_status_byte_18; }
+    uint8_t get_status_byte_19() const { return last_status_byte_19; }
+
     void register_listener(const std::function<void(SpaState*)> &func) {this->listeners_.push_back(func);}
 
   private:
@@ -88,6 +95,11 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     uint8_t target_minute = 0x00;
     uint8_t client_id = 0x00;
     uint32_t last_received_time = 0;
+    uint8_t last_pump_status_byte = 0x00;  // Store the raw pump status byte
+    uint8_t last_status_byte_16 = 0x00;    // Store status byte 16
+    uint8_t last_status_byte_17 = 0x00;    // Store status byte 17
+    uint8_t last_status_byte_18 = 0x00;    // Store status byte 18
+    uint8_t last_status_byte_19 = 0x00;    // Store status byte 19
 
     TEMP_SCALE spa_temp_scale = TEMP_SCALE::UNDEFINED;
     TEMP_SCALE esphome_temp_scale = TEMP_SCALE::C;

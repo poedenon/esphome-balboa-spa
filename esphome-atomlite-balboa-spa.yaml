@@ -209,6 +209,122 @@ sensor:
     name: "Uptime"
     update_interval: 120s
     entity_category: diagnostic
+  - platform: template
+    name: "Spa Pump 1 Speed"
+    id: spa_pump1_speed
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      // Get pump state from spa object (0=off, 1=low, 2=high)
+      auto pump_state = id(spa)->get_current_state()->pump1;
+      ESP_LOGD("PUMP_DEBUG", "Pump 1 raw state: %d", pump_state);
+      return pump_state;
+    entity_category: diagnostic
+  - platform: template
+    name: "Spa Pump 2 Speed"
+    id: spa_pump2_speed
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      // Get pump state from spa object (0=off, 1=low, 2=high)
+      auto pump_state = id(spa)->get_current_state()->pump2;
+      ESP_LOGD("PUMP_DEBUG", "Pump 2 raw state: %d", pump_state);
+      return pump_state;
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Debug - Jet 1 Raw"
+    id: debug_jet1_raw
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      // Get raw jet1 state (should be 0 or 1)
+      auto jet_state = id(spa)->get_current_state()->jet1;
+      ESP_LOGD("PUMP_DEBUG", "Jet 1 raw state: %d", jet_state);
+      return jet_state;
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Debug - Jet 2 Raw"
+    id: debug_jet2_raw
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      // Get raw jet2 state (should be 0 or 1)
+      auto jet_state = id(spa)->get_current_state()->jet2;
+      ESP_LOGD("PUMP_DEBUG", "Jet 2 raw state: %d", jet_state);
+      return jet_state;
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Debug - Status Byte 16"
+    id: debug_status_byte_16
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      auto byte_val = id(spa)->get_status_byte_16();
+      ESP_LOGD("PUMP_DEBUG", "Status Byte 16: 0x%02X", byte_val);
+      return byte_val;
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Debug - Status Byte 17"
+    id: debug_status_byte_17
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      auto byte_val = id(spa)->get_status_byte_17();
+      ESP_LOGD("PUMP_DEBUG", "Status Byte 17: 0x%02X", byte_val);
+      return byte_val;
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Debug - Status Byte 18"
+    id: debug_status_byte_18
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      auto byte_val = id(spa)->get_status_byte_18();
+      ESP_LOGD("PUMP_DEBUG", "Status Byte 18: 0x%02X", byte_val);
+      return byte_val;
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Debug - Status Byte 19"
+    id: debug_status_byte_19
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      auto byte_val = id(spa)->get_status_byte_19();
+      ESP_LOGD("PUMP_DEBUG", "Status Byte 19: 0x%02X", byte_val);
+      return byte_val;
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Debug - Pump Interdependency"
+    id: debug_pump_interdependency
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      auto pump1 = id(spa)->get_current_state()->pump1;
+      auto pump2 = id(spa)->get_current_state()->pump2;
+      ESP_LOGD("PUMP_DEBUG", "Pump1: %d, Pump2: %d - Interdependency check", pump1, pump2);
+      
+      // Check if pump2 is on and pump1 is automatically on
+      if (pump2 > 0 && pump1 > 0) {
+        ESP_LOGD("PUMP_DEBUG", "Pump2 is ON and Pump1 is also ON (interdependency detected)");
+      }
+      return pump1 * 10 + pump2; // Combine both values for easy reading
+    entity_category: diagnostic
 
 binary_sensor:
   - platform: status
@@ -229,7 +345,9 @@ binary_sensor:
     name: "Spa Pump 1 Running"
     id: spa_pump1_running_template
     lambda: |-
-      return id(spa_pump1).state;
+      // Use actual pump speed instead of switch state
+      auto pump_speed = id(spa)->get_current_state()->pump1;
+      return pump_speed > 0;
     icon: "mdi:pump"
     entity_category: diagnostic
 
@@ -237,7 +355,56 @@ binary_sensor:
     name: "Spa Pump 2 Running"
     id: spa_pump2_running_template
     lambda: |-
-      return id(spa_pump2).state;
+      // Use actual pump speed instead of switch state
+      auto pump_speed = id(spa)->get_current_state()->pump2;
+      return pump_speed > 0;
+    icon: "mdi:pump"
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Spa Pump 1 Low Speed"
+    id: spa_pump1_low
+    lambda: |-
+      // Check if pump1 is in low speed state (value = 1)
+      return id(spa)->get_current_state()->pump1 == 1;
+    icon: "mdi:pump"
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Spa Pump 1 High Speed"
+    id: spa_pump1_high
+    lambda: |-
+      // Check if pump1 is in high speed state (value = 2)
+      return id(spa)->get_current_state()->pump1 == 2;
+    icon: "mdi:pump"
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Spa Pump 2 Low Speed"
+    id: spa_pump2_low
+    lambda: |-
+      // Check if pump2 is in low speed state (value = 1)
+      return id(spa)->get_current_state()->pump2 == 1;
+    icon: "mdi:pump"
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Spa Pump 2 High Speed"
+    id: spa_pump2_high
+    lambda: |-
+      // Check if pump2 is in high speed state (value = 2)
+      return id(spa)->get_current_state()->pump2 == 2;
+    icon: "mdi:pump"
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Pump 2 Auto-Started Pump 1"
+    id: pump2_auto_started_pump1
+    lambda: |-
+      // Check if pump2 is on and pump1 is also on (indicating auto-start)
+      auto pump1 = id(spa)->get_current_state()->pump1;
+      auto pump2 = id(spa)->get_current_state()->pump2;
+      return (pump2 > 0) && (pump1 > 0);
     icon: "mdi:pump"
     entity_category: diagnostic
 

@@ -494,15 +494,31 @@ void BalboaSpa::decodeState() {
         spaState.light = spa_component_state;
     }
 
-    // Pump status is the same as jet status (they control the same pumps)
-    // Pump 1 = Jet 1
-    spaState.pump1 = spaState.jet1;
+    // Store the raw status bytes for debugging
+    last_status_byte_16 = input_queue[16];
+    last_status_byte_17 = input_queue[17];
+    last_status_byte_18 = input_queue[18];
+    last_status_byte_19 = input_queue[19];
+    ESP_LOGD(TAG, "Spa/debug/status_bytes: 16=0x%02X 17=0x%02X 18=0x%02X 19=0x%02X", 
+             last_status_byte_16, last_status_byte_17, last_status_byte_18, last_status_byte_19);
+
+    // Decode actual pump status from byte 16
+    // Pump 1: bits 0-1 (0x03) - 0=off, 1=low, 2=high
+    uint8_t pump1_status = input_queue[16] & 0x03;
+    if (pump1_status != spaState.pump1) {
+        ESP_LOGD(TAG, "Spa/pump1/actual_state: %d", pump1_status);
+        spaState.pump1 = pump1_status;
+    }
     
-    // Pump 2 = Jet 2  
-    spaState.pump2 = spaState.jet2;
+    // Pump 2: bits 3-4 (0x18) - 0=off, 8=on (bit 3 set)
+    uint8_t pump2_status = (input_queue[16] & 0x18) >> 3;
+    if (pump2_status != spaState.pump2) {
+        ESP_LOGD(TAG, "Spa/pump2/actual_state: %d", pump2_status);
+        spaState.pump2 = pump2_status;
+    }
     
-    // Pump 3 = Jet 3
-    spaState.pump3 = spaState.jet3;
+    // Pump 3: not used in your spa
+    spaState.pump3 = 0;
 
     // TODO: callback on newState
 
