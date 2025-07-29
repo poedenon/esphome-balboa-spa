@@ -39,6 +39,26 @@ An ESP32-based project for monitoring and controlling Balboa spa systems using E
 ### **Pump Status Encoding (Status Byte 16)**
 Through extensive testing and debugging, we discovered that pump status is encoded in **Status Byte 16** of the Balboa protocol, not in separate jet bits or byte 17 as originally documented.
 
+### **Key Differences from Reference Implementations**
+Our implementation differs significantly from the original [brianfeucht/esphome-balboa-spa](https://github.com/brianfeucht/esphome-balboa-spa/tree/main/components/balboa_spa) and other reference repositories:
+
+#### **Pump Status Decoding:**
+- **Original Implementation**: Pump status was decoded from separate jet bits or assumed to be in byte 17
+- **Our Discovery**: Pump status is actually encoded in **Status Byte 16** with specific bit patterns
+- **Impact**: This enables accurate multi-stage pump control and status monitoring
+
+#### **Jet vs Pump Relationship:**
+- **Original Implementation**: Jets and pumps were treated as separate entities
+- **Our Discovery**: Jet bits are indicators, not the actual pump status
+  - Jet 1 bit only indicates HIGH speed for Pump 1
+  - Jet 2 bit indicates Pump 2 ON state
+  - Actual pump speeds require decoding from Status Byte 16
+
+#### **Multi-Stage Pump Support:**
+- **Original Implementation**: Limited to on/off pump control
+- **Our Implementation**: Full support for multi-stage pumps (OFF/LOW/HIGH)
+- **Added Features**: Cycle buttons, speed sensors, and state-based UI controls
+
 #### **Pump 1 (Multi-Stage Pump):**
 - **Bits 0-1 (0x03)**: Pump speed state
   - `00` = OFF
