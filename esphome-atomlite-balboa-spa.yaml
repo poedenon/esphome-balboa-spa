@@ -110,17 +110,19 @@ switch:
   - platform: balboa_spa
     balboa_spa_id: spa
     jet1:
-      name: "Spa Pump 1"
+      name: "Spa Pump 1 (Hidden)"
       id: spa_pump1
       icon: "mdi:pump"
+      entity_category: diagnostic
       on_turn_on:
         - logger.log: "Pump 1 turned ON"
       on_turn_off:
         - logger.log: "Pump 1 turned OFF"
     jet2:
-      name: "Spa Pump 2"
+      name: "Spa Pump 2 (Hidden)"
       id: spa_pump2
       icon: "mdi:pump"
+      entity_category: diagnostic
       on_turn_on:
         - logger.log: "Pump 2 turned ON"
       on_turn_off:
@@ -379,23 +381,7 @@ binary_sensor:
     icon: "mdi:pump"
     entity_category: diagnostic
 
-  - platform: template
-    name: "Spa Pump 2 Low Speed"
-    id: spa_pump2_low
-    lambda: |-
-      // Check if pump2 is in low speed state (value = 1)
-      return id(spa)->get_current_state()->pump2 == 1;
-    icon: "mdi:pump"
-    entity_category: diagnostic
 
-  - platform: template
-    name: "Spa Pump 2 High Speed"
-    id: spa_pump2_high
-    lambda: |-
-      // Check if pump2 is in high speed state (value = 2)
-      return id(spa)->get_current_state()->pump2 == 2;
-    icon: "mdi:pump"
-    entity_category: diagnostic
 
   - platform: template
     name: "Pump 2 Auto-Started Pump 1"
@@ -496,6 +482,52 @@ button:
             int minute = now.minute;
             id(spa)->set_hour(hour);
             id(spa)->set_minute(minute);
+
+  - platform: template
+    name: "Pump 1 Cycle State"
+    id: pump1_cycle_button
+    entity_category: diagnostic
+    on_press:
+      then:
+        - lambda: |-
+            auto current_speed = id(spa)->get_current_state()->pump1;
+            ESP_LOGD("PUMP_CONTROL", "Pump 1 current speed: %d", current_speed);
+            
+            if (current_speed == 0) {
+              // OFF → LOW
+              ESP_LOGD("PUMP_CONTROL", "Turning Pump 1 ON (LOW)");
+              id(spa_pump1).turn_on();
+            } else if (current_speed == 1) {
+              // LOW → HIGH (turn off then on again)
+              ESP_LOGD("PUMP_CONTROL", "Cycling Pump 1 to HIGH");
+              id(spa_pump1).turn_off();
+              delay(100);
+              id(spa_pump1).turn_on();
+            } else if (current_speed == 2) {
+              // HIGH → OFF
+              ESP_LOGD("PUMP_CONTROL", "Turning Pump 1 OFF");
+              id(spa_pump1).turn_off();
+            }
+
+  - platform: template
+    name: "Pump 2 Toggle"
+    id: pump2_toggle_button
+    entity_category: diagnostic
+    on_press:
+      then:
+        - lambda: |-
+            auto current_speed = id(spa)->get_current_state()->pump2;
+            ESP_LOGD("PUMP_CONTROL", "Pump 2 current speed: %d", current_speed);
+            
+            if (current_speed == 0) {
+              // OFF → ON
+              ESP_LOGD("PUMP_CONTROL", "Turning Pump 2 ON");
+              id(spa_pump2).turn_on();
+            } else {
+              // ON → OFF
+              ESP_LOGD("PUMP_CONTROL", "Turning Pump 2 OFF");
+              id(spa_pump2).turn_off();
+            }
 
 interval:
   - interval: 60s
