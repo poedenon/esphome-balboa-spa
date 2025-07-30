@@ -1,0 +1,238 @@
+# Example ESPHome Configuration for Balboa Spa Monitor
+# This file shows how to configure different board types
+# Copy the relevant section to your main configuration file
+
+# =============================================================================
+# EXAMPLE CONFIGURATIONS FOR DIFFERENT BOARDS
+# =============================================================================
+
+# Example 1: M5Stack Atom Lite Configuration
+# Uncomment and modify the section below for M5Stack Atom Lite
+# -----------------------------------------------------------------------------
+# esp32:
+#   board: m5stack-atom
+#   framework:
+#     type: arduino
+# 
+# uart:
+#   id: spa_uart_bus
+#   tx_pin: GPIO26
+#   rx_pin: GPIO32
+#   baud_rate: 115200
+#   data_bits: 8
+#   parity: NONE
+#   stop_bits: 1
+#   rx_buffer_size: 1024
+
+# Example 2: ESP32 DevKit Configuration
+# Uncomment and modify the section below for ESP32 DevKit
+# -----------------------------------------------------------------------------
+# esp32:
+#   board: esp32dev
+#   framework:
+#     type: arduino
+# 
+# uart:
+#   id: spa_uart_bus
+#   tx_pin: GPIO17
+#   rx_pin: GPIO16
+#   baud_rate: 115200
+#   data_bits: 8
+#   parity: NONE
+#   stop_bits: 1
+#   rx_buffer_size: 1024
+
+# Example 3: ESP8266 NodeMCU Configuration
+# Uncomment and modify the section below for ESP8266 NodeMCU
+# -----------------------------------------------------------------------------
+# esp8266:
+#   board: nodemcuv2
+#   framework:
+#     type: arduino
+# 
+# uart:
+#   id: spa_uart_bus
+#   tx_pin: GPIO1
+#   rx_pin: GPIO3
+#   baud_rate: 115200
+#   data_bits: 8
+#   parity: NONE
+#   stop_bits: 1
+#   rx_buffer_size: 1024
+
+# Example 4: ESP32 with Direction Control
+# Uncomment and modify the section below for ESP32 with RS485 direction control
+# -----------------------------------------------------------------------------
+# esp32:
+#   board: esp32dev
+#   framework:
+#     type: arduino
+# 
+# uart:
+#   id: spa_uart_bus
+#   tx_pin: GPIO17
+#   rx_pin: GPIO16
+#   baud_rate: 115200
+#   data_bits: 8
+#   parity: NONE
+#   stop_bits: 1
+#   rx_buffer_size: 1024
+#   de_pin: GPIO25  # Direction control pin
+
+# =============================================================================
+# COMPLETE EXAMPLE CONFIGURATION
+# =============================================================================
+# Below is a complete example for M5Stack Atom Lite
+# Copy this entire section to create your own configuration
+
+esphome:
+  name: balboa-spa-monitor
+  friendly_name: Balboa Spa Monitor
+  build_path: .build/balboa_spa_monitor
+
+esp32:
+  board: m5stack-atom
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+  baud_rate: 115200
+
+api:
+  encryption:
+    key: "FffAUQcept5X3djf8KOy5RPfPjIJM2Kcm64jokfU+CI="
+    
+wifi:
+  ssid: "YourWiFiSSID"
+  password: "YourWiFiPassword"
+  output_power: 20dB
+  power_save_mode: NONE
+  fast_connect: true
+  reboot_timeout: 15s
+  ap:
+    ssid: "balboa-spa-monitor-Config"
+    password: "BalboaSpa123"
+
+captive_portal:
+
+web_server:
+  port: 80
+  include_internal: true
+  local: true
+
+mqtt:
+  broker: "your_mqtt_broker_ip"
+  port: 1883
+  username: "your_mqtt_username"
+  password: "your_mqtt_password"
+  discovery: false
+  discovery_retain: false
+  topic_prefix: home/balboa-spa-monitor
+  birth_message:
+    topic: home/balboa-spa-monitor/LWT
+    payload: "online"
+    retain: true
+  will_message:
+    topic: home/balboa-spa-monitor/LWT
+    payload: "offline"
+    retain: true
+
+ota:
+  - platform: esphome
+
+uart:
+  id: spa_uart_bus
+  tx_pin: GPIO26
+  rx_pin: GPIO32
+  baud_rate: 115200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+  rx_buffer_size: 1024
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Chicago"
+
+external_components:
+  - source: ./components
+    components: [balboa_spa]
+
+balboa_spa:
+  id: spa
+  uart_id: spa_uart_bus
+  spa_temp_scale: F
+
+climate:
+  - platform: balboa_spa
+    balboa_spa_id: spa
+    name: "Spa Thermostat"
+    id: spa_thermostat
+    visual:
+      min_temperature: 79 °F
+      max_temperature: 110 °F  
+      temperature_step: 1.0 °F
+
+switch:
+  - platform: balboa_spa
+    balboa_spa_id: spa
+    jet1:
+      name: "Spa Pump 1"
+      id: spa_pump1
+      icon: "mdi:pump"
+    jet2:
+      name: "Spa Pump 2"
+      id: spa_pump2
+      icon: "mdi:pump"
+    light:
+      name: "Spa Light"
+      id: spa_light
+      icon: "mdi:lightbulb"
+
+sensor:
+  - platform: balboa_spa
+    balboa_spa_id: spa
+    heatstate:
+      name: "Spa Heat State"
+      id: spa_heat_state
+      icon: "mdi:thermometer"
+    circulation:
+      name: "Spa Circulation"
+      id: spa_circulation
+      icon: "mdi:rotate-3d-variant"
+    restmode:
+      name: "Spa Rest Mode"
+      id: spa_rest_mode
+      icon: "mdi:sleep"
+
+binary_sensor:
+  - platform: status
+    name: "Device Status"
+  - platform: balboa_spa
+    balboa_spa_id: spa
+    filter1_active:
+      name: "Filter 1 Enabled"
+      id: spa_filter1_active
+      icon: "mdi:filter"
+    filter2_active:
+      name: "Filter 2 Enabled"
+      id: spa_filter2_active
+      icon: "mdi:filter"
+
+button:
+  - platform: restart
+    name: "Restart"
+    id: spa_restart_btn
+  - platform: template
+    name: "Sync Spa Time"
+    id: sync_spa_time
+    on_press:
+      then:
+        - lambda: |-
+            auto now = id(sntp_time).now();
+            int hour = now.hour;
+            int minute = now.minute;
+            id(spa)->set_hour(hour);
+            id(spa)->set_minute(minute); 

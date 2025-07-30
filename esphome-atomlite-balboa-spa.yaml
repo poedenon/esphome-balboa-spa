@@ -1,15 +1,29 @@
-# Atom Lite Balboa Spa Monitor - ESPHome Configuration for Atom Lite + Tail485
-# Based on M5Tough config, adapted for Atom Lite hardware
+# Balboa Spa Monitor - ESPHome Configuration
+# Parameterized for easy hardware customization
+
+# =============================================================================
+# HARDWARE CONFIGURATION
+# =============================================================================
+# All hardware settings are configured in secrets.yaml
+# See secrets_template.txt for configuration options
+# =============================================================================
 
 esphome:
   name: !secret device_name
   friendly_name: !secret friendly_name
-  build_path: .build/esphome_atomlite_balboa_spa
+  build_path: .build/esphome_balboa_spa
 
+# ESP32 Configuration
 esp32:
-  board: m5stack-atom
+  board: !secret board_type
   framework:
-    type: arduino
+    type: !secret framework_type
+
+# ESP8266 Configuration (uncomment if using ESP8266)
+# esp8266:
+#   board: ${board}
+#   framework:
+#     type: ${framework_type}
 
 logger:
   level: INFO
@@ -22,7 +36,7 @@ logger:
 # Enable Home Assistant API
 api:
   encryption:
-    key: "FffAUQcept5X3djf8KOy5RPfPjIJM2Kcm64jokfU+CI="
+    key: !secret api_encryption_key
     
 wifi:
   ssid: !secret wifi_ssid
@@ -36,7 +50,7 @@ wifi:
   # Retry connection more aggressively
   reboot_timeout: 15s
   ap:
-    ssid: "AtomLite-Balboa-Spa"
+    ssid: "balboa-spa-config"
     password: !secret fallback_hotspot_password
 
 captive_portal:
@@ -56,13 +70,13 @@ mqtt:
   password: !secret mqtt_password
   discovery: false
   discovery_retain: false
-  topic_prefix: home/atomlite-balboa-spa
+  topic_prefix: home/balboa-spa-monitor
   birth_message:
-    topic: home/atomlite-balboa-spa/LWT
+    topic: home/balboa-spa-monitor/LWT
     payload: "online"
     retain: true
   will_message:
-    topic: home/atomlite-balboa-spa/LWT
+    topic: home/balboa-spa-monitor/LWT
     payload: "offline"
     retain: true
 
@@ -73,18 +87,20 @@ ota:
 
 uart:
   id: spa_uart_bus
-  tx_pin: GPIO26  # Tail485 TX pin
-  rx_pin: GPIO32  # Tail485 RX pin
-  baud_rate: 115200
+  tx_pin: !secret uart_tx_pin
+  rx_pin: !secret uart_rx_pin
+  baud_rate: !secret uart_baud_rate
   data_bits: 8
   parity: NONE
   stop_bits: 1
   rx_buffer_size: 1024
+  # Optional: RS485 direction control
+  # de_pin: !secret uart_de_pin
 
 time:
   - platform: sntp
     id: sntp_time
-    timezone: "America/Chicago"
+    timezone: !secret timezone
 
 external_components:
   - source: ./components
@@ -95,13 +111,18 @@ external_components:
   #     ref: main
   #   components: [balboa_spa]
 
-
+# =============================================================================
+# BALBOA SPA COMPONENT CONFIGURATION
+# =============================================================================
 
 balboa_spa:
   id: spa
   uart_id: spa_uart_bus
-  spa_temp_scale: F
+  spa_temp_scale: !secret temperature_scale
 
+# =============================================================================
+# CLIMATE CONTROLS
+# =============================================================================
 
 climate:
   - platform: balboa_spa
@@ -112,6 +133,10 @@ climate:
       min_temperature: 79 °F
       max_temperature: 110 °F  
       temperature_step: 1.0 °F
+
+# =============================================================================
+# SWITCH CONTROLS
+# =============================================================================
 
 switch:
   - platform: balboa_spa
@@ -143,6 +168,10 @@ switch:
         - logger.log: "Light turned ON"
       on_turn_off:
         - logger.log: "Light turned OFF"
+
+# =============================================================================
+# SENSORS
+# =============================================================================
 
 sensor:
   - platform: balboa_spa
@@ -285,8 +314,6 @@ sensor:
       return byte_val;
     entity_category: diagnostic
 
-
-
   - platform: template
     name: "Debug - Pump Interdependency"
     id: debug_pump_interdependency
@@ -305,7 +332,9 @@ sensor:
       return pump1 * 10 + pump2; // Combine both values for easy reading
     entity_category: diagnostic
 
-
+# =============================================================================
+# BINARY SENSORS
+# =============================================================================
 
 binary_sensor:
   - platform: status
@@ -360,8 +389,6 @@ binary_sensor:
     icon: "mdi:pump"
     entity_category: diagnostic
 
-
-
   - platform: template
     name: "Pump 2 Auto-Started Pump 1"
     id: pump2_auto_started_pump1
@@ -381,6 +408,10 @@ binary_sensor:
       return id(spa)->get_current_state()->light;
     icon: "mdi:lightbulb"
     entity_category: diagnostic
+
+# =============================================================================
+# TEXT SENSORS
+# =============================================================================
 
 text_sensor:
   - platform: wifi_info
@@ -452,6 +483,10 @@ text_sensor:
       return {buf};
     update_interval: 60s
     entity_category: diagnostic
+
+# =============================================================================
+# BUTTONS
+# =============================================================================
 
 button:
   - platform: restart
@@ -536,6 +571,10 @@ button:
               ESP_LOGD("LIGHT_CONTROL", "Turning Light OFF");
               id(spa_light).turn_off();
             }
+
+# =============================================================================
+# AUTOMATIONS
+# =============================================================================
 
 interval:
   - interval: 60s
