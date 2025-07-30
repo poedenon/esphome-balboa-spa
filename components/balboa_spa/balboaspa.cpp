@@ -499,6 +499,8 @@ void BalboaSpa::decodeState() {
     last_status_byte_17 = input_queue[17];
     last_status_byte_18 = input_queue[18];
     last_status_byte_19 = input_queue[19];
+    last_status_byte_7 = input_queue[7];
+    last_status_byte_25 = input_queue[25];
     ESP_LOGD(TAG, "Spa/debug/status_bytes: 16=0x%02X 17=0x%02X 18=0x%02X 19=0x%02X", 
              last_status_byte_16, last_status_byte_17, last_status_byte_18, last_status_byte_19);
 

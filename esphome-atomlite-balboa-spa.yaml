@@ -12,7 +12,7 @@ esp32:
     type: arduino
 
 logger:
-  level: INFO
+  level: DEBUG
   baud_rate: 115200
   logs:
     uart.arduino_esp32: WARN
@@ -180,13 +180,43 @@ sensor:
     update_interval: 30s
     lambda: |-
       if (id(spa_thermostat).current_temperature != NAN) {
-        return id(spa_thermostat).current_temperature * 1.8 + 32.0;
+        return id(spa_thermostat).current_temperature;
       } else {
         return {};
       }
     filters:
       - filter_out: nan
       - throttle: 10s
+
+  # Debug sensors for temperature investigation
+  - platform: template
+    name: "Debug - Target Temp Raw Byte"
+    id: debug_target_temp_raw
+    lambda: |-
+      return id(spa).get_status_byte_25();
+    filters:
+      - throttle: 5s
+  - platform: template
+    name: "Debug - Current Temp Raw Byte"
+    id: debug_current_temp_raw
+    lambda: |-
+      return id(spa).get_status_byte_7();
+    filters:
+      - throttle: 5s
+  - platform: template
+    name: "Debug - Target Temp Raw / 2"
+    id: debug_target_temp_div2
+    lambda: |-
+      return id(spa).get_status_byte_25() / 2.0;
+    filters:
+      - throttle: 5s
+  - platform: template
+    name: "Debug - Current Temp Raw / 2"
+    id: debug_current_temp_div2
+    lambda: |-
+      return id(spa).get_status_byte_7() / 2.0;
+    filters:
+      - throttle: 5s
   - platform: template
     name: "Spa Target Temperature"
     id: spa_target_temp
