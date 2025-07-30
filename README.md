@@ -254,7 +254,29 @@ tap_action:
   service: button.press
   target:
     entity_id: button.esphome_web_bb4e14_pump_2_toggle
-```
+
+# Spa Light - On/Off with color coding
+type: custom:mushroom-template-card
+primary: Spa Light
+secondary: >
+  {% if is_state('binary_sensor.esphome_web_bb4e14_spa_light_running', 'on') %}
+    ON
+  {% else %}
+    OFF
+  {% endif %}
+icon: mdi:lightbulb
+icon_color: >
+  {% if is_state('binary_sensor.esphome_web_bb4e14_spa_light_running', 'on') %}
+    yellow
+  {% else %}
+    grey
+  {% endif %}
+fill_container: true
+tap_action:
+  action: call-service
+  service: button.press
+  target:
+    entity_id: button.esphome_web_bb4e14_spa_light_toggle
 
 #### **Alternative Dashboard Layouts**
 

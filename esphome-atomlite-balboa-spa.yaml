@@ -128,9 +128,10 @@ switch:
       on_turn_off:
         - logger.log: "Pump 2 turned OFF"
     light:
-      name: "Spa Light"
+      name: "Spa Light (Hidden)"
       id: spa_light
       icon: "mdi:lightbulb"
+      entity_category: diagnostic
       on_turn_on:
         - logger.log: "Light turned ON"
       on_turn_off:
@@ -394,6 +395,15 @@ binary_sensor:
     icon: "mdi:pump"
     entity_category: diagnostic
 
+  - platform: template
+    name: "Spa Light Running"
+    id: spa_light_running
+    lambda: |-
+      // Check if light is on
+      return id(spa)->get_current_state()->light;
+    icon: "mdi:lightbulb"
+    entity_category: diagnostic
+
 text_sensor:
   - platform: wifi_info
     ip_address:
@@ -527,6 +537,26 @@ button:
               // ON → OFF
               ESP_LOGD("PUMP_CONTROL", "Turning Pump 2 OFF");
               id(spa_pump2).turn_off();
+            }
+
+  - platform: template
+    name: "Spa Light Toggle"
+    id: spa_light_toggle_button
+    entity_category: diagnostic
+    on_press:
+      then:
+        - lambda: |-
+            auto light_state = id(spa)->get_current_state()->light;
+            ESP_LOGD("LIGHT_CONTROL", "Light current state: %d", light_state);
+            
+            if (light_state == 0) {
+              // OFF → ON
+              ESP_LOGD("LIGHT_CONTROL", "Turning Light ON");
+              id(spa_light).turn_on();
+            } else {
+              // ON → OFF
+              ESP_LOGD("LIGHT_CONTROL", "Turning Light OFF");
+              id(spa_light).turn_off();
             }
 
 interval:
