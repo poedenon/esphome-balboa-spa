@@ -101,7 +101,7 @@ climate:
     name: "Spa Thermostat"
     id: spa_thermostat
     visual:
-      min_temperature: 80 °F
+      min_temperature: 79 °F
       max_temperature: 110 °F  
       temperature_step: 1.0 °F
 
