@@ -1,6 +1,6 @@
 # 🌊 Balboa Spa Monitor - ESPHome Configuration
 
-An ESP32-based project for monitoring and controlling Balboa spa systems using ESPHome with RS485 communication. This project provides comprehensive spa monitoring and control capabilities with multi-stage pump support.
+An ESP32-based project for monitoring and controlling Balboa spa systems using ESPHome with RS485 communication. This project provides comprehensive spa monitoring and control capabilities with multi-stage pump support and full temperature control.
 
 ## 🛠️ Required Components
 
@@ -21,6 +21,7 @@ An ESP32-based project for monitoring and controlling Balboa spa systems using E
 
 ### ✅ **Fully Implemented Features**
 - ✅ **Real-time Spa Monitoring**: Temperature, pumps, lights, heater, and filter status
+- ✅ **Temperature Control**: Full temperature setting and monitoring with Fahrenheit display
 - ✅ **Multi-Stage Pump Control**: Support for pumps with OFF/LOW/HIGH states
 - ✅ **Web Interface**: ESPHome web interface accessible from any device
 - ✅ **RS485 Communication**: Direct communication with Balboa spa control systems
@@ -28,11 +29,31 @@ An ESP32-based project for monitoring and controlling Balboa spa systems using E
 - ✅ **MQTT Integration**: Full MQTT broker connectivity with Last Will Testament (LWT) messages
 - ✅ **Button-Based Controls**: Intuitive pump control via buttons instead of switches
 - ✅ **Comprehensive Sensors**: Speed, running status, and interdependency monitoring
+- ✅ **Home Assistant Integration**: Full climate control and sensor integration
 
 ### 📋 **Future Enhancements**
 - ⬜ **Touch Screen Display**: Local spa status and controls (if using M5Tough)
 - ⬜ **Enhanced UI**: Custom touch interface for display-equipped devices
 - ⬜ **Home Assistant Discovery**: Auto-discovery integration (currently disabled for manual MQTT setup)
+
+## 🌡️ **Temperature Control Features**
+
+### **Temperature Monitoring**
+- **Current Temperature**: Real-time spa water temperature display
+- **Target Temperature**: Current temperature setpoint
+- **Temperature Scale**: Fahrenheit display and control
+- **Heating Status**: Monitor when the spa is actively heating
+
+### **Temperature Control**
+- **Climate Component**: Full Home Assistant climate control integration
+- **Temperature Range**: 80°F minimum (spa safety limit) to maximum spa temperature
+- **Direct Control**: Set temperature directly from Home Assistant interface
+- **Real-time Updates**: Temperature changes reflect immediately in the interface
+
+### **Temperature Limitations**
+- **Minimum Temperature**: 80°F (spa firmware safety limit)
+- **Maximum Temperature**: Determined by spa firmware (typically 104°F)
+- **Scale Support**: Fahrenheit display and control (spa internally uses Fahrenheit)
 
 ## 🔍 **Protocol Discoveries & Implementation**
 
@@ -80,6 +101,11 @@ Instead of traditional switches, we implemented button controls for better user 
 - **Press 2**: ON → OFF
 - **Press 3**: OFF → ON (toggle continues)
 
+#### **Spa Light Toggle Button:**
+- **Press 1**: OFF → ON
+- **Press 2**: ON → OFF
+- **Press 3**: OFF → ON (toggle continues)
+
 ### **Sensor Implementation**
 Comprehensive sensor suite for monitoring:
 
@@ -93,6 +119,7 @@ Comprehensive sensor suite for monitoring:
 - **Spa Pump 1 Running**: ON when speed > 0
 - **Spa Pump 2 Running**: ON when speed > 0
 - **Pump 2 Auto-Started Pump 1**: ON when interdependency active
+- **Spa Light Running**: ON when light is active
 
 ## 🔧 **Hardware Configuration**
 
@@ -112,6 +139,7 @@ The component correctly decodes the Balboa protocol status messages:
 - **Message Structure**: 0x7E delimited with CRC-8 validation
 - **Status Updates**: Received every second from the spa
 - **Pump Status**: Decoded from Status Byte 16 with proper bit masking
+- **Temperature Data**: Decoded from Flag Bytes 2 and 20
 
 ### **Command Structure**
 Commands follow the Balboa protocol format:
@@ -127,7 +155,9 @@ Commands follow the Balboa protocol format:
 │   ├── balboaspa.cpp                   # Main component implementation
 │   ├── balboaspa.h                     # Component header
 │   ├── spa_state.h                     # State structure definitions
-│   └── binary_sensor/                  # Binary sensor implementations
+│   ├── climate/                        # Climate control implementation
+│   ├── binary_sensor/                  # Binary sensor implementations
+│   └── switch/                         # Switch implementations
 ├── secrets.yaml                        # WiFi and sensitive configuration  
 ├── secrets_template.yaml               # Template for new installations
 └── README.md                           # This documentation
@@ -189,6 +219,19 @@ automation:
       - service: notify.mobile_app
         data:
           message: "Pump 2 automatically started Pump 1"
+
+# Set temperature for evening relaxation
+automation:
+  - alias: "Evening spa temperature"
+    trigger:
+      platform: time
+      at: "18:00:00"
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.spa_thermostat
+        data:
+          temperature: 102
 ```
 
 ### **Dashboard Configuration**
@@ -278,6 +321,27 @@ tap_action:
   target:
     entity_id: button.esphome_web_bb4e14_spa_light_toggle
 
+# Spa Thermostat - Temperature control
+type: custom:mushroom-template-card
+primary: Spa Temperature
+secondary: >
+  {{ states('climate.esphome_web_bb4e14_spa_thermostat') }}
+icon: mdi:thermometer
+icon_color: >
+  {% set current = states('sensor.esphome_web_bb4e14_spa_current_temperature') | float(0) %}
+  {% set target = states('climate.esphome_web_bb4e14_spa_thermostat') | regex_findall('Target: ([0-9.]+)') | first | float(0) %}
+  {% if current >= target %}
+    green
+  {% elif current >= target - 5 %}
+    orange
+  {% else %}
+    red
+  {% endif %}
+fill_container: true
+tap_action:
+  action: more-info
+  entity: climate.esphome_web_bb4e14_spa_thermostat
+
 #### **Alternative Dashboard Layouts**
 
 **Basic Button Cards:**
@@ -292,11 +356,16 @@ cards:
     entity: button.pump_2_toggle
     name: "Pump 2"
     icon: mdi:pump
+  - type: button
+    entity: button.spa_light_toggle
+    name: "Spa Light"
+    icon: mdi:lightbulb
   - type: entities
     entities:
       - entity: sensor.spa_pump_1_speed
       - entity: sensor.spa_pump_2_speed
       - entity: sensor.spa_current_temperature
+      - entity: climate.spa_thermostat
 ```
 
 **Status Monitoring Cards:**
@@ -306,8 +375,8 @@ title: Spa Status
 entities:
   - entity: sensor.spa_current_temperature
     name: Current Temperature
-  - entity: sensor.spa_target_temperature
-    name: Target Temperature
+  - entity: climate.spa_thermostat
+    name: Temperature Control
   - entity: sensor.spa_pump_1_speed
     name: Pump 1 Speed
   - entity: sensor.spa_pump_2_speed
@@ -316,6 +385,8 @@ entities:
     name: Pump 1 Running
   - entity: binary_sensor.spa_pump_2_running
     name: Pump 2 Running
+  - entity: binary_sensor.spa_light_running
+    name: Light Status
 state_color: true
 ```
 
@@ -326,6 +397,15 @@ state_color: true
 1. **Pump states not updating**: Check RS485 connection and spa communication
 2. **Button not responding**: Verify the pump switch IDs are correctly referenced
 3. **MQTT disconnections**: Check network stability and MQTT broker settings
+4. **Temperature not changing**: Verify spa is not in a locked state or maintenance mode
+5. **Temperature below 80°F**: This is a spa safety limit and cannot be overridden
+
+### **Temperature Control Issues**
+
+- **Minimum Temperature**: The spa has a firmware-enforced minimum of 80°F
+- **Temperature Scale**: All temperatures are displayed and controlled in Fahrenheit
+- **Control Response**: Temperature changes may take 30-60 seconds to take effect
+- **Heating Status**: Monitor the heating status to confirm the spa is responding to commands
 
 ### **Debug Sensors**
 The configuration includes comprehensive debug sensors:
@@ -369,6 +449,19 @@ Our implementation differs significantly from the [brianfeucht/esphome-balboa-sp
 - **Comprehensive speed monitoring** with numeric and binary sensors
 - **Button-based controls** instead of simple switches
 
+#### **Temperature Control**
+
+**Original Repository:**
+- Basic temperature monitoring only
+- No climate control integration
+- No temperature setting capabilities
+
+**Our Implementation:**
+- **Full climate control integration** with Home Assistant
+- **Temperature setting capabilities** with proper Fahrenheit support
+- **Real-time temperature monitoring** with accurate display
+- **Minimum temperature enforcement** (80°F spa limit)
+
 #### **Protocol Implementation Differences**
 
 **Original Repository:**
@@ -406,6 +499,12 @@ button:
     name: "Pump 2 Toggle"
     # Simple on/off toggle
 
+# Climate control
+climate:
+  - platform: balboa_spa
+    name: "Spa Thermostat"
+    # Full temperature control
+
 # Comprehensive sensor monitoring
 sensor:
   - platform: template
@@ -428,18 +527,22 @@ sensor:
 
 4. **Multi-Stage Control**: We implemented proper cycling through OFF→LOW→HIGH→OFF states.
 
+5. **Temperature Control**: We implemented full climate control with proper Fahrenheit support.
+
 #### **Sensor Implementation Differences**
 
 **Original Repository:**
 - Basic binary sensors for jet states
 - No speed monitoring
 - No interdependency detection
+- Basic temperature monitoring only
 
 **Our Implementation:**
 - **Speed sensors**: Numeric values showing actual pump speeds
 - **State-specific binary sensors**: Low/High speed indicators
 - **Interdependency sensors**: Detection of auto-start behavior
 - **Debug sensors**: Raw protocol byte monitoring for troubleshooting
+- **Climate sensors**: Full temperature control and monitoring
 
 #### **Control Interface Differences**
 
@@ -447,12 +550,14 @@ sensor:
 - Simple on/off switches
 - No state feedback
 - No multi-stage support
+- No temperature control
 
 **Our Implementation:**
 - **Button-based controls** with state cycling
 - **Visual state feedback** with color-coded dashboard cards
 - **Multi-stage support** for complex pump configurations
 - **Comprehensive monitoring** of all pump states
+- **Full temperature control** with climate integration
 
 #### **Why These Differences Matter**
 
@@ -461,6 +566,7 @@ sensor:
 3. **User Experience**: Button-based controls with visual feedback are more intuitive
 4. **Troubleshooting**: Debug sensors and protocol monitoring aid in problem diagnosis
 5. **Automation**: Comprehensive sensor data enables more sophisticated Home Assistant automations
+6. **Temperature Control**: Full climate integration provides complete spa control
 
 These differences represent significant improvements in understanding and implementing the Balboa spa protocol, providing users with more accurate, functional, and user-friendly spa control systems.
 
@@ -486,6 +592,18 @@ F0 F1 CT HH MM F2 00 00 00 F3 F4 PP 00 F5 LF F6 00 00 00 00 ST 00 00 00
 - **Byte 16**: Contains actual pump status information
   - Pump 1: Bits 0-1 (0x03) - Values: 0=OFF, 1=LOW, 2=HIGH
   - Pump 2: Bits 3-4 (0x18) - Values: 0=OFF, 8=ON (bit 3 set)
+
+#### **Temperature Data Encoding**
+
+**Temperature Bytes:**
+- **Byte 7 (Flag Byte 2)**: Current temperature (raw Fahrenheit value)
+- **Byte 25 (Flag Byte 20)**: Target temperature (raw Fahrenheit value)
+- **Temperature Scale**: Spa reports Celsius (1) but sends Fahrenheit values
+
+**Temperature Control:**
+- **Command Format**: 0A BF 20 with temperature value
+- **Temperature Range**: 80°F minimum (spa firmware limit)
+- **Scale Handling**: Internal conversion between Fahrenheit and Celsius
 
 #### **Jet vs Pump Relationship Discovery**
 
@@ -562,6 +680,11 @@ Pump 2 (bits 3-4):
 - **Reality**: Pump 2 auto-starts Pump 1 at low speed
 - **Impact**: Original implementations don't detect automatic pump activation
 
+#### **Temperature Scale Confusion:**
+- **Documentation**: Unclear about temperature scale handling
+- **Reality**: Spa reports Celsius scale but sends Fahrenheit values
+- **Impact**: Original implementations may have incorrect temperature conversion
+
 ### **Implementation Differences Summary**
 
 | Aspect | Protocol Doc | brianfeucht Repo | Our Implementation |
@@ -572,6 +695,8 @@ Pump 2 (bits 3-4):
 | **Multi-Stage Support** | Implied | No | Yes |
 | **Interdependency** | Not documented | Not detected | Detected |
 | **State Accuracy** | Theoretical | Partial | Complete |
+| **Temperature Control** | Not documented | Basic monitoring | Full control |
+| **Climate Integration** | Not available | Not available | Full integration |
 
 ### **Why These Differences Matter**
 
@@ -580,6 +705,8 @@ Pump 2 (bits 3-4):
 3. **State Completeness**: We show the full pump state, not just jet indicators
 4. **Interdependency Awareness**: We detect when pumps automatically start each other
 5. **Debug Capability**: We can monitor raw protocol bytes for troubleshooting
+6. **Temperature Control**: We provide full climate control integration
+7. **User Experience**: Complete spa control from a single interface
 
-This technical analysis demonstrates that our implementation provides the most accurate and complete interpretation of the Balboa spa protocol, correcting several errors in the original documentation and implementation.
+This technical analysis demonstrates that our implementation provides the most accurate and complete interpretation of the Balboa spa protocol, correcting several errors in the original documentation and implementation while adding comprehensive temperature control capabilities.
 

@@ -81,10 +81,8 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     uint8_t get_status_byte_17() const { return last_status_byte_17; }
     uint8_t get_status_byte_18() const { return last_status_byte_18; }
     uint8_t get_status_byte_19() const { return last_status_byte_19; }
-    
-    // Debug methods for temperature investigation
-    uint8_t get_status_byte_7() const { return last_status_byte_7; }
-    uint8_t get_status_byte_25() const { return last_status_byte_25; }
+
+
 
     void register_listener(const std::function<void(SpaState*)> &func) {this->listeners_.push_back(func);}
 
@@ -104,8 +102,7 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     uint8_t last_status_byte_17 = 0x00;    // Store status byte 17
     uint8_t last_status_byte_18 = 0x00;    // Store status byte 18
     uint8_t last_status_byte_19 = 0x00;    // Store status byte 19
-    uint8_t last_status_byte_7 = 0x00;     // Store status byte 7 (current temp)
-    uint8_t last_status_byte_25 = 0x00;    // Store status byte 25 (target temp)
+
 
     TEMP_SCALE spa_temp_scale = TEMP_SCALE::UNDEFINED;
     TEMP_SCALE esphome_temp_scale = TEMP_SCALE::C;
