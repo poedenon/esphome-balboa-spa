@@ -26,7 +26,7 @@ esp32:
 #     type: ${framework_type}
 
 logger:
-  level: DEBUG
+  level: INFO
   baud_rate: 115200
   logs:
     uart.arduino_esp32: WARN
