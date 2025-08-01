@@ -524,6 +524,9 @@ void BalboaSpa::decodeState() {
     // Pump 3: not used in your spa
     spaState.pump3 = 0;
 
+    // Filter status tracking
+    update_filter_status();
+
     // TODO: callback on newState
 
     last_state_crc = input_queue[input_queue[1]];
@@ -534,7 +537,15 @@ void BalboaSpa::decodeFilterSettings() {
     spaFilterSettings.filter1_minute = input_queue[6];
     spaFilterSettings.filter1_duration_hour = input_queue[7];
     spaFilterSettings.filter1_duration_minute = input_queue[8];
-    spaFilterSettings.filter2_enable = bitRead(input_queue[9], 7); // check
+    
+    // Only update filter2_enable if we haven't sent a command recently (within 2 seconds)
+    uint32_t current_time = millis();
+    if (current_time - last_filter2_enable_command_time > 2000) {
+        spaFilterSettings.filter2_enable = bitRead(input_queue[9], 7); // check
+    } else {
+        ESP_LOGD(TAG, "Ignoring filter2_enable update from spa (command sent recently)");
+    }
+    
     spaFilterSettings.filter2_hour = input_queue[9] & 0x1F; // Clear bit 7, keep bits 0-4 for hour
     spaFilterSettings.filter2_minute = input_queue[10];
     spaFilterSettings.filter2_duration_hour = input_queue[11];
@@ -656,5 +667,232 @@ float BalboaSpa::convert_c_to_f(float c) {
 float BalboaSpa::convert_f_to_c(float f) {
     return (f - 32.0) * 5.0 / 9.0;
 }
+
+// Filter update methods
+void BalboaSpa::set_filter1_schedule(uint8_t start_hour, uint8_t start_minute, uint8_t duration_hour, uint8_t duration_minute) {
+    if (start_hour > 23 || start_minute > 55 || duration_hour > 23 || duration_minute > 55) {
+        ESP_LOGW(TAG, "Invalid filter 1 schedule parameters");
+        return;
+    }
+    // Validate 5-minute increments
+    if (start_minute % 5 != 0 || duration_minute % 5 != 0) {
+        ESP_LOGW(TAG, "Filter 1 schedule minutes must be in 5-minute increments");
+        return;
+    }
+    
+    // Store the new settings
+    spaFilterSettings.filter1_hour = start_hour;
+    spaFilterSettings.filter1_minute = start_minute;
+    spaFilterSettings.filter1_duration_hour = duration_hour;
+    spaFilterSettings.filter1_duration_minute = duration_minute;
+    
+    // Send filter settings update command
+    if (client_id != 0) {
+        output_queue.push(client_id);
+        output_queue.push(0xBF);
+        output_queue.push(0x22);
+        output_queue.push(0x01);
+        output_queue.push(start_hour);
+        output_queue.push(start_minute);
+        output_queue.push(duration_hour);
+        output_queue.push(duration_minute);
+        output_queue.push(spaFilterSettings.filter2_hour | (spaFilterSettings.filter2_enable << 7));
+        output_queue.push(spaFilterSettings.filter2_minute);
+        output_queue.push(spaFilterSettings.filter2_duration_hour);
+        output_queue.push(spaFilterSettings.filter2_duration_minute);
+        ESP_LOGD(TAG, "Updating filter 1 schedule: %02d:%02d for %02d:%02d", start_hour, start_minute, duration_hour, duration_minute);
+        rs485_send();
+    }
+}
+
+void BalboaSpa::set_filter2_schedule(uint8_t start_hour, uint8_t start_minute, uint8_t duration_hour, uint8_t duration_minute) {
+    if (start_hour > 23 || start_minute > 55 || duration_hour > 23 || duration_minute > 55) {
+        ESP_LOGW(TAG, "Invalid filter 2 schedule parameters");
+        return;
+    }
+    // Validate 5-minute increments
+    if (start_minute % 5 != 0 || duration_minute % 5 != 0) {
+        ESP_LOGW(TAG, "Filter 2 schedule minutes must be in 5-minute increments");
+        return;
+    }
+    
+    // Store the new settings
+    spaFilterSettings.filter2_hour = start_hour;
+    spaFilterSettings.filter2_minute = start_minute;
+    spaFilterSettings.filter2_duration_hour = duration_hour;
+    spaFilterSettings.filter2_duration_minute = duration_minute;
+    
+    // Send filter settings update command
+    if (client_id != 0) {
+        output_queue.push(client_id);
+        output_queue.push(0xBF);
+        output_queue.push(0x22);
+        output_queue.push(0x01);
+        output_queue.push(spaFilterSettings.filter1_hour);
+        output_queue.push(spaFilterSettings.filter1_minute);
+        output_queue.push(spaFilterSettings.filter1_duration_hour);
+        output_queue.push(spaFilterSettings.filter1_duration_minute);
+        output_queue.push(start_hour | (spaFilterSettings.filter2_enable << 7));
+        output_queue.push(start_minute);
+        output_queue.push(duration_hour);
+        output_queue.push(duration_minute);
+        ESP_LOGD(TAG, "Updating filter 2 schedule: %02d:%02d for %02d:%02d", start_hour, start_minute, duration_hour, duration_minute);
+        rs485_send();
+    }
+}
+
+void BalboaSpa::set_filter2_enable(bool enable) {
+    spaFilterSettings.filter2_enable = enable ? 1 : 0;
+    last_filter2_enable_command_time = millis(); // Track when we sent this command
+    
+    // Send filter settings update command
+    if (client_id != 0) {
+        output_queue.push(client_id);
+        output_queue.push(0xBF);
+        output_queue.push(0x22);
+        output_queue.push(0x01);
+        output_queue.push(spaFilterSettings.filter1_hour);
+        output_queue.push(spaFilterSettings.filter1_minute);
+        output_queue.push(spaFilterSettings.filter1_duration_hour);
+        output_queue.push(spaFilterSettings.filter1_duration_minute);
+        output_queue.push(spaFilterSettings.filter2_hour | (enable << 7));
+        output_queue.push(spaFilterSettings.filter2_minute);
+        output_queue.push(spaFilterSettings.filter2_duration_hour);
+        output_queue.push(spaFilterSettings.filter2_duration_minute);
+        ESP_LOGD(TAG, "Setting filter 2 enable: %s", enable ? "ON" : "OFF");
+        rs485_send();
+    }
+}
+
+void BalboaSpa::request_filter_settings() {
+    // Send filter configuration request according to protocol
+    if (client_id != 0) {
+        output_queue.push(client_id);
+        output_queue.push(0xBF);
+        output_queue.push(0x22);
+        output_queue.push(0x01);
+        output_queue.push(0x00);
+        output_queue.push(0x00);
+        ESP_LOGD(TAG, "Requesting filter settings from spa");
+        rs485_send();
+    }
+}
+
+void BalboaSpa::reset_filter_runtime(uint8_t filter_number) {
+    if (filter_number == 1) {
+        spaState.filter1_runtime_hours = 0;
+        ESP_LOGD(TAG, "Reset filter 1 runtime hours");
+    } else if (filter_number == 2) {
+        spaState.filter2_runtime_hours = 0;
+        ESP_LOGD(TAG, "Reset filter 2 runtime hours");
+    } else {
+        ESP_LOGW(TAG, "Invalid filter number for runtime reset: %d", filter_number);
+    }
+}
+
+void BalboaSpa::reset_filter_cycles(uint8_t filter_number) {
+    if (filter_number == 1) {
+        spaState.filter1_cycles_completed = 0;
+        ESP_LOGD(TAG, "Reset filter 1 cycles completed");
+    } else if (filter_number == 2) {
+        spaState.filter2_cycles_completed = 0;
+        ESP_LOGD(TAG, "Reset filter 2 cycles completed");
+    } else {
+        ESP_LOGW(TAG, "Invalid filter number for cycles reset: %d", filter_number);
+    }
+}
+
+uint32_t BalboaSpa::get_filter1_current_runtime_minutes() const {
+    if (!spaState.filter1_running) {
+        return 0;
+    }
+    uint32_t current_time = millis();
+    uint32_t runtime_ms = current_time - spaState.filter1_last_start_time;
+    return runtime_ms / 60000; // Convert to minutes
+}
+
+uint32_t BalboaSpa::get_filter2_current_runtime_minutes() const {
+    if (!spaState.filter2_running) {
+        return 0;
+    }
+    uint32_t current_time = millis();
+    uint32_t runtime_ms = current_time - spaState.filter2_last_start_time;
+    return runtime_ms / 60000; // Convert to minutes
+}
+
+void BalboaSpa::update_filter_status() {
+    uint32_t current_time = millis();
+    
+    // Check if filter 1 should be running based on schedule
+    bool filter1_should_run = false;
+    if (spaFilterSettings.filter1_duration_hour > 0 || spaFilterSettings.filter1_duration_minute > 0) {
+        uint32_t current_minutes = spaState.hour * 60 + spaState.minutes;
+        uint32_t filter_start_minutes = spaFilterSettings.filter1_hour * 60 + spaFilterSettings.filter1_minute;
+        uint32_t filter_duration_minutes = spaFilterSettings.filter1_duration_hour * 60 + spaFilterSettings.filter1_duration_minute;
+        
+        // Check if current time is within filter 1 schedule
+        if (filter_duration_minutes > 0) {
+            uint32_t end_minutes = filter_start_minutes + filter_duration_minutes;
+            if (end_minutes > 1440) { // Wrap around midnight
+                filter1_should_run = (current_minutes >= filter_start_minutes) || (current_minutes < (end_minutes - 1440));
+            } else {
+                filter1_should_run = (current_minutes >= filter_start_minutes) && (current_minutes < end_minutes);
+            }
+        }
+    }
+    
+    // Check if filter 2 should be running based on schedule
+    bool filter2_should_run = false;
+    if (spaFilterSettings.filter2_enable && (spaFilterSettings.filter2_duration_hour > 0 || spaFilterSettings.filter2_duration_minute > 0)) {
+        uint32_t current_minutes = spaState.hour * 60 + spaState.minutes;
+        uint32_t filter_start_minutes = spaFilterSettings.filter2_hour * 60 + spaFilterSettings.filter2_minute;
+        uint32_t filter_duration_minutes = spaFilterSettings.filter2_duration_hour * 60 + spaFilterSettings.filter2_duration_minute;
+        
+        // Check if current time is within filter 2 schedule
+        if (filter_duration_minutes > 0) {
+            uint32_t end_minutes = filter_start_minutes + filter_duration_minutes;
+            if (end_minutes > 1440) { // Wrap around midnight
+                filter2_should_run = (current_minutes >= filter_start_minutes) || (current_minutes < (end_minutes - 1440));
+            } else {
+                filter2_should_run = (current_minutes >= filter_start_minutes) && (current_minutes < end_minutes);
+            }
+        }
+    }
+    
+    // Update filter 1 running status
+    if (filter1_should_run && !spaState.filter1_running) {
+        // Filter 1 starting
+        spaState.filter1_running = true;
+        spaState.filter1_last_start_time = current_time;
+        ESP_LOGD(TAG, "Filter 1 started running");
+    } else if (!filter1_should_run && spaState.filter1_running) {
+        // Filter 1 stopping
+        spaState.filter1_running = false;
+        // Add runtime to total
+        uint32_t runtime_ms = current_time - spaState.filter1_last_start_time;
+        spaState.filter1_runtime_hours += runtime_ms / 3600000; // Convert to hours
+        spaState.filter1_cycles_completed++;
+        ESP_LOGD(TAG, "Filter 1 stopped running, total runtime: %d hours, cycles: %d", 
+                 spaState.filter1_runtime_hours, spaState.filter1_cycles_completed);
+    }
+    
+    // Update filter 2 running status
+    if (filter2_should_run && !spaState.filter2_running) {
+        // Filter 2 starting
+        spaState.filter2_running = true;
+        spaState.filter2_last_start_time = current_time;
+        ESP_LOGD(TAG, "Filter 2 started running");
+    } else if (!filter2_should_run && spaState.filter2_running) {
+        // Filter 2 stopping
+        spaState.filter2_running = false;
+        // Add runtime to total
+        uint32_t runtime_ms = current_time - spaState.filter2_last_start_time;
+        spaState.filter2_runtime_hours += runtime_ms / 3600000; // Convert to hours
+        spaState.filter2_cycles_completed++;
+        ESP_LOGD(TAG, "Filter 2 stopped running, total runtime: %d hours, cycles: %d", 
+                 spaState.filter2_runtime_hours, spaState.filter2_cycles_completed);
+    }
+}
+
 }  // namespace balboa_spa
 }  // namespace esphome

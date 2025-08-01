@@ -75,6 +75,24 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     uint8_t get_filter2_duration_hour() const { return spaFilterSettings.filter2_duration_hour; }
     uint8_t get_filter2_duration_minute() const { return spaFilterSettings.filter2_duration_minute; }
 
+    // Filter update methods
+    void set_filter1_schedule(uint8_t start_hour, uint8_t start_minute, uint8_t duration_hour, uint8_t duration_minute);
+    void set_filter2_schedule(uint8_t start_hour, uint8_t start_minute, uint8_t duration_hour, uint8_t duration_minute);
+    void set_filter2_enable(bool enable);
+    void request_filter_settings();
+    void reset_filter_runtime(uint8_t filter_number);
+    void reset_filter_cycles(uint8_t filter_number);
+    
+    // Filter status methods
+    bool is_filter1_running() const { return spaState.filter1_running; }
+    bool is_filter2_running() const { return spaState.filter2_running; }
+    uint16_t get_filter1_runtime_hours() const { return spaState.filter1_runtime_hours; }
+    uint16_t get_filter2_runtime_hours() const { return spaState.filter2_runtime_hours; }
+    uint16_t get_filter1_cycles_completed() const { return spaState.filter1_cycles_completed; }
+    uint16_t get_filter2_cycles_completed() const { return spaState.filter2_cycles_completed; }
+    uint32_t get_filter1_current_runtime_minutes() const;
+    uint32_t get_filter2_current_runtime_minutes() const;
+
     // Debug methods for pump status
     uint8_t get_pump_status_byte() const { return last_pump_status_byte; }
     uint8_t get_status_byte_16() const { return last_status_byte_16; }
@@ -116,6 +134,7 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     char filtersettings_request_status = 0; //stages: 0-> want it; 1-> requested it; 2-> got it; 3-> further processed it
     char faultlog_update_timer = 0; //temp logic so we only get the fault log once per 5 minutes
     char filtersettings_update_timer = 0; //temp logic so we only get the filter settings once per 5 minutes
+    uint32_t last_filter2_enable_command_time = 0; // Track when we last sent filter2 enable command
 
     SpaConfig spaConfig;
     SpaState spaState;
@@ -124,6 +143,7 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
 
     void read_serial();
     void update_sensors();
+    void update_filter_status();
 
     uint8_t crc8(CircularBuffer<uint8_t, 100> &data, bool ignore_delimiter);
     void ID_request();

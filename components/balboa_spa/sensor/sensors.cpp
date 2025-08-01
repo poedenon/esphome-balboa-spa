@@ -71,6 +71,24 @@ void BalboaSpaSensors::update(SpaState* spaState) {
         case BalboaSpaSensorType::FILTER2_DURATION_MINUTE:
             sensor_state_value = parent->get_filter2_duration_minute();
             break;
+        case BalboaSpaSensorType::FILTER1_RUNTIME_HOURS:
+            sensor_state_value = parent->get_filter1_runtime_hours();
+            break;
+        case BalboaSpaSensorType::FILTER2_RUNTIME_HOURS:
+            sensor_state_value = parent->get_filter2_runtime_hours();
+            break;
+        case BalboaSpaSensorType::FILTER1_CYCLES_COMPLETED:
+            sensor_state_value = parent->get_filter1_cycles_completed();
+            break;
+        case BalboaSpaSensorType::FILTER2_CYCLES_COMPLETED:
+            sensor_state_value = parent->get_filter2_cycles_completed();
+            break;
+        case BalboaSpaSensorType::FILTER1_CURRENT_RUNTIME_MINUTES:
+            sensor_state_value = parent->get_filter1_current_runtime_minutes();
+            break;
+        case BalboaSpaSensorType::FILTER2_CURRENT_RUNTIME_MINUTES:
+            sensor_state_value = parent->get_filter2_current_runtime_minutes();
+            break;
         default:
             ESP_LOGD(TAG, "Spa/Sensors/UnknownSensorType: SensorType Number: %d", sensor_type);
             // Unknown enum value. Ignore

@@ -26,7 +26,7 @@ esp32:
 #     type: ${framework_type}
 
 logger:
-  level: INFO
+  level: DEBUG
   baud_rate: 115200
   logs:
     uart.arduino_esp32: WARN
@@ -131,7 +131,7 @@ climate:
     id: spa_thermostat
     visual:
       min_temperature: 79 °F
-      max_temperature: 110 °F  
+      max_temperature: 104 °F  
       temperature_step: 1.0 °F
 
 # =============================================================================
@@ -168,6 +168,20 @@ switch:
         - logger.log: "Light turned ON"
       on_turn_off:
         - logger.log: "Light turned OFF"
+    filter2_enable:
+      name: "Filter 2 Enable"
+      id: spa_filter2_enable
+      icon: "mdi:water-pump"
+      on_turn_on:
+        - logger.log: "Filter 2 enabled"
+        - lambda: |-
+            id(spa)->set_filter2_enable(true);
+      on_turn_off:
+        - logger.log: "Filter 2 disabled"
+        - lambda: |-
+            id(spa)->set_filter2_enable(false);
+
+
 
 # =============================================================================
 # SENSORS
@@ -206,6 +220,7 @@ sensor:
       icon: "mdi:clock-time-four-outline"
       filters:
         - throttle: 5s
+
 
   - platform: wifi_signal
     name: "WiFi Signal"
@@ -302,6 +317,10 @@ sensor:
       return byte_val;
     entity_category: diagnostic
 
+
+
+
+
   - platform: template
     name: "Debug - Status Byte 19"
     id: debug_status_byte_19
@@ -333,6 +352,13 @@ sensor:
     entity_category: diagnostic
 
 # =============================================================================
+# FILTER SCHEDULE CONTROLS
+# =============================================================================
+
+# Note: Number components for schedule changes removed - spa doesn't support remote schedule updates
+# Filter 2 enable/disable switch is still available and working
+
+# =============================================================================
 # BINARY SENSORS
 # =============================================================================
 
@@ -351,6 +377,8 @@ binary_sensor:
       id: spa_filter2_active
       icon: "mdi:filter"
       entity_category: diagnostic
+
+
   - platform: template
     name: "Spa Pump 1 Running"
     id: spa_pump1_running_template
@@ -409,6 +437,22 @@ binary_sensor:
     icon: "mdi:lightbulb"
     entity_category: diagnostic
 
+  - platform: template
+    name: "Filter 1 Running"
+    id: filter1_running_status
+    lambda: |-
+      return id(spa)->is_filter1_running();
+    entity_category: diagnostic
+    icon: "mdi:filter-variant"
+    
+  - platform: template
+    name: "Filter 2 Running"
+    id: filter2_running_status
+    lambda: |-
+      return id(spa)->is_filter2_enabled() && id(spa)->is_filter2_running();
+    entity_category: diagnostic
+    icon: "mdi:filter-variant"
+
 # =============================================================================
 # TEXT SENSORS
 # =============================================================================
@@ -438,8 +482,23 @@ text_sensor:
       if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
         return {};
       }
-      char buf[6];
-      snprintf(buf, sizeof(buf), "%02d:%02d", hour, minute);
+      
+      // Convert to 12-hour format
+      int display_hour = hour;
+      const char* ampm = "am";
+      if (hour == 0) {
+        display_hour = 12;
+        ampm = "am";
+      } else if (hour == 12) {
+        display_hour = 12;
+        ampm = "pm";
+      } else if (hour > 12) {
+        display_hour = hour - 12;
+        ampm = "pm";
+      }
+      
+      char buf[8];
+      snprintf(buf, sizeof(buf), "%d:%02d%s", display_hour, minute, ampm);
       return {buf};
     update_interval: 120s
     entity_category: diagnostic
@@ -457,9 +516,49 @@ text_sensor:
         return {};
       }
       
+      // Calculate end time
+      int end_hour = start_hour + duration_hour;
+      int end_minute = start_minute + duration_minute;
+      if (end_minute >= 60) {
+        end_hour += end_minute / 60;
+        end_minute = end_minute % 60;
+      }
+      if (end_hour >= 24) {
+        end_hour = end_hour % 24;
+      }
+      
+      // Convert start time to 12-hour format
+      int start_display_hour = start_hour;
+      const char* start_ampm = "am";
+      if (start_hour == 0) {
+        start_display_hour = 12;
+        start_ampm = "am";
+      } else if (start_hour == 12) {
+        start_display_hour = 12;
+        start_ampm = "pm";
+      } else if (start_hour > 12) {
+        start_display_hour = start_hour - 12;
+        start_ampm = "pm";
+      }
+      
+      // Convert end time to 12-hour format
+      int end_display_hour = end_hour;
+      const char* end_ampm = "am";
+      if (end_hour == 0) {
+        end_display_hour = 12;
+        end_ampm = "am";
+      } else if (end_hour == 12) {
+        end_display_hour = 12;
+        end_ampm = "pm";
+      } else if (end_hour > 12) {
+        end_display_hour = end_hour - 12;
+        end_ampm = "pm";
+      }
+      
       char buf[32];
-      snprintf(buf, sizeof(buf), "%02d:%02d (%02d:%02d)", 
-               start_hour, start_minute, duration_hour, duration_minute);
+      snprintf(buf, sizeof(buf), "%d:%02d%s - %d:%02d%s", 
+               start_display_hour, start_minute, start_ampm,
+               end_display_hour, end_minute, end_ampm);
       return {buf};
     update_interval: 60s
     entity_category: diagnostic
@@ -477,9 +576,49 @@ text_sensor:
         return {};
       }
       
+      // Calculate end time
+      int end_hour = start_hour + duration_hour;
+      int end_minute = start_minute + duration_minute;
+      if (end_minute >= 60) {
+        end_hour += end_minute / 60;
+        end_minute = end_minute % 60;
+      }
+      if (end_hour >= 24) {
+        end_hour = end_hour % 24;
+      }
+      
+      // Convert start time to 12-hour format
+      int start_display_hour = start_hour;
+      const char* start_ampm = "am";
+      if (start_hour == 0) {
+        start_display_hour = 12;
+        start_ampm = "am";
+      } else if (start_hour == 12) {
+        start_display_hour = 12;
+        start_ampm = "pm";
+      } else if (start_hour > 12) {
+        start_display_hour = start_hour - 12;
+        start_ampm = "pm";
+      }
+      
+      // Convert end time to 12-hour format
+      int end_display_hour = end_hour;
+      const char* end_ampm = "am";
+      if (end_hour == 0) {
+        end_display_hour = 12;
+        end_ampm = "am";
+      } else if (end_hour == 12) {
+        end_display_hour = 12;
+        end_ampm = "pm";
+      } else if (end_hour > 12) {
+        end_display_hour = end_hour - 12;
+        end_ampm = "pm";
+      }
+      
       char buf[32];
-      snprintf(buf, sizeof(buf), "%02d:%02d (%02d:%02d)", 
-               start_hour, start_minute, duration_hour, duration_minute);
+      snprintf(buf, sizeof(buf), "%d:%02d%s - %d:%02d%s", 
+               start_display_hour, start_minute, start_ampm,
+               end_display_hour, end_minute, end_ampm);
       return {buf};
     update_interval: 60s
     entity_category: diagnostic
@@ -505,6 +644,21 @@ button:
             int minute = now.minute;
             id(spa)->set_hour(hour);
             id(spa)->set_minute(minute);
+            
+            // Log the synced time in 12-hour format
+            int display_hour = hour;
+            const char* ampm = "am";
+            if (hour == 0) {
+              display_hour = 12;
+              ampm = "am";
+            } else if (hour == 12) {
+              display_hour = 12;
+              ampm = "pm";
+            } else if (hour > 12) {
+              display_hour = hour - 12;
+              ampm = "pm";
+            }
+            ESP_LOGI("TIME_SYNC", "Spa time synced to %d:%02d%s", display_hour, minute, ampm);
 
   - platform: template
     name: "Pump 1 Cycle State"
@@ -572,6 +726,10 @@ button:
               id(spa_light).turn_off();
             }
 
+
+
+
+
 # =============================================================================
 # AUTOMATIONS
 # =============================================================================
@@ -584,3 +742,19 @@ interval:
     then:
       - logger.log: "Auto-restarting device for stability"
       - button.press:  spa_restart_btn
+
+
+
+
+
+# =============================================================================
+# FILTER MANAGEMENT EXTENSIONS (New Features)
+# =============================================================================
+
+# Note: The following filter features are available:
+#
+# - filter1_running_status: Shows if Filter 1 is currently running
+# - filter2_running_status: Shows if Filter 2 is currently running
+# - filter2_enable switch for enabling/disabling Filter 2
+#
+# See example_config_with_filters.yaml for complete implementation.

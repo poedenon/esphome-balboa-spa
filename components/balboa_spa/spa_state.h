@@ -13,6 +13,10 @@ class SpaState {
             heat_state = 254;
             target_temp = NAN;
             current_temp = NAN;
+            filter1_runtime_hours = 0;
+            filter2_runtime_hours = 0;
+            filter1_cycles_completed = 0;
+            filter2_cycles_completed = 0;
         }
         uint8_t jet1 :2;
         uint8_t jet2 :2;
@@ -31,6 +35,16 @@ class SpaState {
         uint8_t heat_state;
         float target_temp;
         float current_temp;
+        
+        // Filter status tracking
+        uint16_t filter1_runtime_hours;      // Total runtime hours for filter 1
+        uint16_t filter2_runtime_hours;      // Total runtime hours for filter 2
+        uint16_t filter1_cycles_completed;   // Number of completed filter cycles
+        uint16_t filter2_cycles_completed;   // Number of completed filter cycles
+        bool filter1_running;                // Current filter 1 running status
+        bool filter2_running;                // Current filter 2 running status
+        uint32_t filter1_last_start_time;    // Last start time for filter 1 (millis)
+        uint32_t filter2_last_start_time;    // Last start time for filter 2 (millis)
 };
 }  // namespace balboa_spa
 }  // namespace esphome

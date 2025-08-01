@@ -1,0 +1,230 @@
+# Example ESPHome configuration for Balboa Spa with enhanced filter features
+# This shows all the new filter status and control capabilities
+
+esphome:
+  name: balboa-spa-monitor
+  friendly_name: Balboa Spa Monitor
+
+# Include secrets
+substitutions:
+  device_name: balboa-spa-monitor
+
+# Load secrets
+packages:
+  balboa_spa_secrets: !include secrets.yaml
+
+# ESP32 Configuration
+esp32:
+  board: m5stack-atom
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  level: INFO
+  logs:
+    balboa_spa: DEBUG
+
+# WiFi Configuration
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "BalboaSpa_AP"
+    password: "BalboaSpa123"
+
+# API Configuration
+api:
+  encryption_key: !secret api_encryption_key
+
+# OTA Configuration
+ota:
+  password: !secret ota_password
+
+# Web Server
+web_server:
+  port: 80
+  auth:
+    username: !secret web_username
+    password: !secret web_password
+
+# Time Configuration
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: !secret timezone
+
+# UART Configuration for RS485
+uart:
+  tx_pin: GPIO26
+  rx_pin: GPIO32
+  baud_rate: 115200
+
+# Balboa Spa Component
+balboa_spa:
+  id: balboa_spa
+  spa_temp_scale: F
+  esphome_temp_scale: F
+
+# Binary Sensors for Filter Status
+binary_sensor:
+  # Filter Status
+  - platform: balboa_spa
+    balboa_spa_id: balboa_spa
+    filter1_active:
+      name: "Filter 1 Active"
+      icon: "mdi:filter"
+    filter2_active:
+      name: "Filter 2 Active"
+      icon: "mdi:filter"
+    filter1_running:
+      name: "Filter 1 Running"
+      icon: "mdi:filter-variant"
+    filter2_running:
+      name: "Filter 2 Running"
+      icon: "mdi:filter-variant"
+  
+  # Other Spa Status
+  - platform: balboa_spa
+    balboa_spa_id: balboa_spa
+    connected:
+      name: "Spa Connected"
+    circulation:
+      name: "Circulation Pump"
+    blower:
+      name: "Blower"
+    highrange:
+      name: "High Range"
+    restmode:
+      name: "Rest Mode"
+    heatstate:
+      name: "Heating"
+    pump1_running:
+      name: "Pump 1 Running"
+    pump2_running:
+      name: "Pump 2 Running"
+
+# Sensors for Filter Timing and Status
+sensor:
+  # Filter Schedule Sensors
+  - platform: balboa_spa
+    balboa_spa_id: balboa_spa
+    filter1_start_hour:
+      name: "Filter 1 Start Hour"
+      icon: "mdi:clock-start"
+    filter1_start_minute:
+      name: "Filter 1 Start Minute"
+      icon: "mdi:clock-start"
+    filter1_duration_hour:
+      name: "Filter 1 Duration Hours"
+      icon: "mdi:clock-duration"
+    filter1_duration_minute:
+      name: "Filter 1 Duration Minutes"
+      icon: "mdi:clock-duration"
+    filter2_start_hour:
+      name: "Filter 2 Start Hour"
+      icon: "mdi:clock-start"
+    filter2_start_minute:
+      name: "Filter 2 Start Minute"
+      icon: "mdi:clock-start"
+    filter2_duration_hour:
+      name: "Filter 2 Duration Hours"
+      icon: "mdi:clock-duration"
+    filter2_duration_minute:
+      name: "Filter 2 Duration Minutes"
+      icon: "mdi:clock-duration"
+  
+  # Filter Runtime and Cycle Tracking
+  - platform: balboa_spa
+    balboa_spa_id: balboa_spa
+    filter1_runtime_hours:
+      name: "Filter 1 Total Runtime"
+      icon: "mdi:clock-outline"
+    filter2_runtime_hours:
+      name: "Filter 2 Total Runtime"
+      icon: "mdi:clock-outline"
+    filter1_cycles_completed:
+      name: "Filter 1 Cycles Completed"
+      icon: "mdi:counter"
+    filter2_cycles_completed:
+      name: "Filter 2 Cycles Completed"
+      icon: "mdi:counter"
+    filter1_current_runtime_minutes:
+      name: "Filter 1 Current Runtime"
+      icon: "mdi:timer"
+    filter2_current_runtime_minutes:
+      name: "Filter 2 Current Runtime"
+      icon: "mdi:timer"
+  
+  # Other Spa Sensors
+  - platform: balboa_spa
+    balboa_spa_id: balboa_spa
+    blower:
+      name: "Blower Status"
+    highrange:
+      name: "High Range Status"
+    circulation:
+      name: "Circulation Status"
+    restmode:
+      name: "Rest Mode Status"
+    heatstate:
+      name: "Heat State"
+    spa_clock_hour:
+      name: "Spa Clock Hour"
+    spa_clock_minute:
+      name: "Spa Clock Minute"
+
+# Switches for Control
+switch:
+  # Filter Control
+  - platform: balboa_spa
+    balboa_spa_id: balboa_spa
+    filter2_enable:
+      name: "Filter 2 Enable"
+      icon: "mdi:water-pump"
+  
+  # Other Spa Controls
+  - platform: balboa_spa
+    balboa_spa_id: balboa_spa
+    blower:
+      name: "Blower"
+      icon: "mdi:fan"
+    light:
+      name: "Lights"
+      icon: "mdi:lightbulb"
+    jet1:
+      name: "Jet 1"
+      icon: "mdi:fan"
+    jet2:
+      name: "Jet 2"
+      icon: "mdi:fan"
+    jet3:
+      name: "Jet 3"
+      icon: "mdi:fan"
+    jet4:
+      name: "Jet 4"
+      icon: "mdi:fan"
+
+# Climate Control for Temperature
+climate:
+  - platform: balboa_spa
+    balboa_spa_id: balboa_spa
+    name: "Spa Temperature"
+    min_temperature: 80
+    max_temperature: 104
+    temperature_step: 1
+
+# Note: Number components for schedule changes removed - spa doesn't support remote schedule updates
+# Filter 2 enable/disable switch is still available and working
+
+# Note: Automation examples removed - they referenced number components that are no longer available
+# The "Test Filter Settings" button in the main config provides manual testing capability
+
+# Example secrets.yaml content (create this file):
+# wifi_ssid: "YourWiFiSSID"
+# wifi_password: "YourWiFiPassword"
+# api_encryption_key: "your_32_character_encryption_key_here"
+# web_username: "admin"
+# web_password: "your_web_password"
+# ota_password: "your_ota_password"
+# timezone: "America/Chicago" 

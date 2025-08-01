@@ -54,7 +54,11 @@ void BalboaSpaThermostat::update(SpaState* spaState) {
     needs_update = is_diff_no_nan(current_temp, this->current_temperature) || needs_update;
     this->current_temperature = !std::isnan(current_temp) ? current_temp : this->current_temperature; 
 
-    auto new_action = spaState->heat_state == 1 ? climate::CLIMATE_ACTION_HEATING : climate::CLIMATE_ACTION_IDLE;
+    // More robust heating detection: check heat_state OR if current temp is below target
+    bool is_heating = (spaState->heat_state == 1) || 
+                     (!std::isnan(current_temp) && !std::isnan(target_temp) && current_temp < target_temp);
+    auto new_action = is_heating ? climate::CLIMATE_ACTION_HEATING : climate::CLIMATE_ACTION_IDLE;
+    
     needs_update = new_action != this->action || needs_update;
     this->action = new_action;
 

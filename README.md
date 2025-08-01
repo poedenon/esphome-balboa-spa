@@ -8,7 +8,7 @@ A comprehensive ESPHome component for monitoring and controlling Balboa spa syst
 - **Climate Control**: Direct temperature control through Home Assistant
 - **Pump Control**: Individual control of spa pumps with speed cycling
 - **Light Control**: Spa light on/off functionality
-- **Filter Monitoring**: Real-time filter cycle status and scheduling
+- **Filter Monitoring**: Real-time filter cycle status, runtime tracking, and schedule display
 - **Time Synchronization**: Automatic spa clock synchronization
 - **Comprehensive Diagnostics**: Extensive debug sensors and binary sensors
 - **Hardware Agnostic**: Works with any ESP32/ESP8266 board and RS485 converter
@@ -198,9 +198,17 @@ Most Balboa spas use 115200 baud rate. If your spa uses a different rate, change
 - **WiFi Signal**: WiFi signal strength
 - **Uptime**: Device uptime
 
+### Filter Sensors
+- **Filter 1/2 Schedule**: Display filter schedules in 12-hour format (e.g., "12:00pm - 4:00pm")
+- **Filter 1/2 Runtime Hours**: Total accumulated runtime hours
+- **Filter 1/2 Cycles Completed**: Number of completed filter cycles
+- **Filter 1/2 Current Runtime**: Current active runtime in minutes
+
 ### Binary Sensors
 - **Device Status**: Online/offline status
-- **Filter Status**: Filter cycle status
+- **Filter 1 Running**: Real-time filter 1 running status
+- **Filter 2 Running**: Real-time filter 2 running status
+- **Filter 1/2 Active**: Filter enable/disable status
 - **Pump Running States**: Individual pump running indicators
 - **Light Status**: Light on/off status
 
@@ -209,6 +217,8 @@ Most Balboa spas use 115200 baud rate. If your spa uses a different rate, change
 - **Sync Spa Time**: Synchronize spa clock with device time
 - **Pump Controls**: Cycle pump states and toggle controls
 - **Light Toggle**: Toggle spa light
+- **Test Filter Settings**: Log current filter status and schedules
+- **Request Filter Settings**: Send filter configuration request to spa
 
 ## Troubleshooting
 
@@ -255,6 +265,48 @@ logger:
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## Home Assistant Dashboard Examples
+
+### Filter Status Cards
+For displaying filter status in your Home Assistant dashboard, you can use simple markdown cards:
+
+#### Filter 1 Status Card
+```yaml
+type: markdown
+content: >
+  **Filter 1 Status**
+  
+  {% set filter_running = states('binary_sensor.esphome_web_bb4e14_filter_1_running') %}
+  {% set schedule = states('sensor.esphome_web_bb4e14_filter_1_schedule') %}
+  
+  {% if filter_running == 'on' %}
+  🟢 **RUNNING** | {{ schedule }}
+  {% else %}
+  🔵 **INACTIVE** | {{ schedule }}
+  {% endif %}
+```
+
+#### Filter 2 Status Card
+```yaml
+type: markdown
+content: >
+  **Filter 2 Status**
+  
+  {% set filter_running = states('binary_sensor.esphome_web_bb4e14_filter_2_running') %}
+  {% set filter_enabled = states('binary_sensor.esphome_web_bb4e14_filter2_active') %}
+  {% set schedule = states('sensor.esphome_web_bb4e14_filter_2_schedule') %}
+  
+  {% if filter_running == 'on' %}
+  🟢 **RUNNING** | {{ schedule }}
+  {% elif filter_enabled == 'on' %}
+  🔵 **INACTIVE** | {{ schedule }}
+  {% else %}
+  ⚫ **DISABLED** | {{ schedule }}
+  {% endif %}
+```
+
+**Note**: Replace `esphome_web_bb4e14` with your actual device name from the ESPHome configuration.
+
 ## Support
 
 For issues and questions:
@@ -267,4 +319,5 @@ For issues and questions:
 - Based on the original Balboa spa ESPHome component
 - Adapted for hardware flexibility and ease of use
 - Tested with various ESP32 and ESP8266 boards
+- Enhanced with comprehensive filter monitoring capabilities
 

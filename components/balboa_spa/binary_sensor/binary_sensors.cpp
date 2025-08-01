@@ -55,6 +55,12 @@ void BalboaSpaBinarySensors::update(SpaState* spaState) {
         case BalboaSpaBinarySensorType::FILTER2_ACTIVE:
             sensor_state_value = spa->is_filter2_enabled();
             break;
+        case BalboaSpaBinarySensorType::FILTER1_RUNNING:
+            sensor_state_value = spa->is_filter1_running();
+            break;
+        case BalboaSpaBinarySensorType::FILTER2_RUNNING:
+            sensor_state_value = spa->is_filter2_running();
+            break;
         case BalboaSpaBinarySensorType::PUMP1_RUNNING:
             sensor_state_value = (spaState->pump1 > 0);  // Running if not 0 (off)
             break;

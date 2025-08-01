@@ -4,6 +4,7 @@ from esphome.components import uart
 from esphome.const import CONF_ID
 
 DEPENDENCIES = ['uart']
+AUTO_LOAD = ['sensor', 'binary_sensor', 'switch']
 
 CONF_SPA_ID = "balboa_spa_id"
 CONF_SPA_TEMP_SCALE = "spa_temp_scale"
