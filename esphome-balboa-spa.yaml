@@ -274,6 +274,16 @@ binary_sensor:
       id: spa_filter2_active
       icon: "mdi:filter"
       entity_category: diagnostic
+    filter1_running:
+      name: "Filter 1 Running"
+      id: spa_filter1_running
+      icon: "mdi:filter-variant"
+      entity_category: diagnostic
+    filter2_running:
+      name: "Filter 2 Running"
+      id: spa_filter2_running
+      icon: "mdi:filter-variant"
+      entity_category: diagnostic
 
   # Pump Status - Optimized with communication checks
   - platform: template
@@ -346,27 +356,7 @@ binary_sensor:
     icon: "mdi:lightbulb"
     entity_category: diagnostic
 
-  - platform: template
-    name: "Filter 1 Running"
-    id: filter1_running_status
-    lambda: |-
-      if (!id(spa)->is_communicating()) {
-        return {};
-      }
-      return id(spa)->is_filter1_running();
-    entity_category: diagnostic
-    icon: "mdi:filter-variant"
-    
-  - platform: template
-    name: "Filter 2 Running"
-    id: filter2_running_status
-    lambda: |-
-      if (!id(spa)->is_communicating()) {
-        return {};
-      }
-      return id(spa)->is_filter2_enabled() && id(spa)->is_filter2_running();
-    entity_category: diagnostic
-    icon: "mdi:filter-variant"
+
 
 # =============================================================================
 # TEXT SENSORS
