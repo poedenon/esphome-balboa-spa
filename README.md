@@ -37,6 +37,8 @@ external_components:
     components: [balboa_spa]
 ```
 
+**Note**: You can also use the shorter `github://poedenon/esphome-balboa-spa` format, which ESPHome automatically converts to HTTPS.
+
 #### Option B: Manual Installation
 1. Clone this repository
 2. Copy the `components/balboa_spa` folder to your ESPHome configuration directory
