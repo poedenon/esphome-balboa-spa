@@ -168,18 +168,7 @@ switch:
         - logger.log: "Light turned ON"
       on_turn_off:
         - logger.log: "Light turned OFF"
-    filter2_enable:
-      name: "Filter 2 Enable"
-      id: spa_filter2_enable
-      icon: "mdi:water-pump"
-      on_turn_on:
-        - logger.log: "Filter 2 enabled"
-        - lambda: |-
-            id(spa)->set_filter2_enable(true);
-      on_turn_off:
-        - logger.log: "Filter 2 disabled"
-        - lambda: |-
-            id(spa)->set_filter2_enable(false);
+
 
 
 

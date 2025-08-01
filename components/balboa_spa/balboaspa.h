@@ -78,7 +78,7 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     // Filter update methods
     void set_filter1_schedule(uint8_t start_hour, uint8_t start_minute, uint8_t duration_hour, uint8_t duration_minute);
     void set_filter2_schedule(uint8_t start_hour, uint8_t start_minute, uint8_t duration_hour, uint8_t duration_minute);
-    void set_filter2_enable(bool enable);
+
     void request_filter_settings();
     void reset_filter_runtime(uint8_t filter_number);
     void reset_filter_cycles(uint8_t filter_number);
@@ -134,7 +134,6 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     char filtersettings_request_status = 0; //stages: 0-> want it; 1-> requested it; 2-> got it; 3-> further processed it
     char faultlog_update_timer = 0; //temp logic so we only get the fault log once per 5 minutes
     char filtersettings_update_timer = 0; //temp logic so we only get the filter settings once per 5 minutes
-    uint32_t last_filter2_enable_command_time = 0; // Track when we last sent filter2 enable command
 
     SpaConfig spaConfig;
     SpaState spaState;

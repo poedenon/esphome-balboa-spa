@@ -538,13 +538,8 @@ void BalboaSpa::decodeFilterSettings() {
     spaFilterSettings.filter1_duration_hour = input_queue[7];
     spaFilterSettings.filter1_duration_minute = input_queue[8];
     
-    // Only update filter2_enable if we haven't sent a command recently (within 2 seconds)
-    uint32_t current_time = millis();
-    if (current_time - last_filter2_enable_command_time > 2000) {
-        spaFilterSettings.filter2_enable = bitRead(input_queue[9], 7); // check
-    } else {
-        ESP_LOGD(TAG, "Ignoring filter2_enable update from spa (command sent recently)");
-    }
+    // Always trust the spa response for filter2_enable state
+    spaFilterSettings.filter2_enable = bitRead(input_queue[9], 7);
     
     spaFilterSettings.filter2_hour = input_queue[9] & 0x1F; // Clear bit 7, keep bits 0-4 for hour
     spaFilterSettings.filter2_minute = input_queue[10];
@@ -741,28 +736,7 @@ void BalboaSpa::set_filter2_schedule(uint8_t start_hour, uint8_t start_minute, u
     }
 }
 
-void BalboaSpa::set_filter2_enable(bool enable) {
-    spaFilterSettings.filter2_enable = enable ? 1 : 0;
-    last_filter2_enable_command_time = millis(); // Track when we sent this command
-    
-    // Send filter settings update command
-    if (client_id != 0) {
-        output_queue.push(client_id);
-        output_queue.push(0xBF);
-        output_queue.push(0x22);
-        output_queue.push(0x01);
-        output_queue.push(spaFilterSettings.filter1_hour);
-        output_queue.push(spaFilterSettings.filter1_minute);
-        output_queue.push(spaFilterSettings.filter1_duration_hour);
-        output_queue.push(spaFilterSettings.filter1_duration_minute);
-        output_queue.push(spaFilterSettings.filter2_hour | (enable << 7));
-        output_queue.push(spaFilterSettings.filter2_minute);
-        output_queue.push(spaFilterSettings.filter2_duration_hour);
-        output_queue.push(spaFilterSettings.filter2_duration_minute);
-        ESP_LOGD(TAG, "Setting filter 2 enable: %s", enable ? "ON" : "OFF");
-        rs485_send();
-    }
-}
+
 
 void BalboaSpa::request_filter_settings() {
     // Send filter configuration request according to protocol

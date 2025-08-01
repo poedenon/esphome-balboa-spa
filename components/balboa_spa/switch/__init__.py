@@ -22,7 +22,7 @@ Jet3Switch = balboa_spa_ns.class_("Jet3Switch", switch.Switch)
 Jet4Switch = balboa_spa_ns.class_("Jet4Switch", switch.Switch)
 LightsSwitch = balboa_spa_ns.class_("LightsSwitch", switch.Switch)
 BlowerSwitch = balboa_spa_ns.class_("BlowerSwitch", switch.Switch)
-Filter2EnableSwitch = balboa_spa_ns.class_("Filter2EnableSwitch", switch.Switch)
+
 
 CONF_JET1 = "jet1"
 CONF_JET2 = "jet2"
@@ -30,7 +30,7 @@ CONF_JET3 = "jet3"
 CONF_JET4 = "jet4"
 CONF_LIGHTS = "light"
 CONF_BLOWER = "blower"
-CONF_FILTER2_ENABLE = "filter2_enable"
+
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -65,17 +65,13 @@ CONFIG_SCHEMA = cv.Schema(
             icon=ICON_GRAIN,
             default_restore_mode="DISABLED",
         ),
-        cv.Optional(CONF_FILTER2_ENABLE): switch.switch_schema(
-            Filter2EnableSwitch,
-            icon="mdi:water-pump",
-            default_restore_mode="DISABLED",
-        ),
+
     })
 
 async def to_code(config):
     parent = await cg.get_variable(config[CONF_SPA_ID])
 
-    for switch_type in [CONF_JET1, CONF_JET2, CONF_JET3, CONF_JET4, CONF_LIGHTS, CONF_BLOWER, CONF_FILTER2_ENABLE]:
+    for switch_type in [CONF_JET1, CONF_JET2, CONF_JET3, CONF_JET4, CONF_LIGHTS, CONF_BLOWER]:
         if conf := config.get(switch_type):
             sw_var = await switch.new_switch(conf)
             cg.add(sw_var.set_parent(parent))
