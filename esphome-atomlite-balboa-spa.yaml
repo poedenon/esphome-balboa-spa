@@ -1,4 +1,4 @@
-# Balboa Spa Monitor - ESPHome Configuration
+# Balboa Spa Monitor - ESPHome Configuration with Improved Entity Naming
 # Parameterized for easy hardware customization
 
 # =============================================================================
@@ -142,8 +142,8 @@ switch:
   - platform: balboa_spa
     balboa_spa_id: spa
     jet1:
-      name: "Spa Pump 1 (Hidden)"
-      id: spa_pump1
+      name: "Spa Pump 1"
+      id: spa_pump1_control
       icon: "mdi:pump"
       entity_category: diagnostic
       on_turn_on:
@@ -151,8 +151,8 @@ switch:
       on_turn_off:
         - logger.log: "Pump 1 turned OFF"
     jet2:
-      name: "Spa Pump 2 (Hidden)"
-      id: spa_pump2
+      name: "Spa Pump 2"
+      id: spa_pump2_control
       icon: "mdi:pump"
       entity_category: diagnostic
       on_turn_on:
@@ -160,17 +160,14 @@ switch:
       on_turn_off:
         - logger.log: "Pump 2 turned OFF"
     light:
-      name: "Spa Light (Hidden)"
-      id: spa_light
+      name: "Spa Light"
+      id: spa_light_control
       icon: "mdi:lightbulb"
       entity_category: diagnostic
       on_turn_on:
         - logger.log: "Light turned ON"
       on_turn_off:
         - logger.log: "Light turned OFF"
-
-
-
 
 # =============================================================================
 # SENSORS
@@ -210,15 +207,19 @@ sensor:
       filters:
         - throttle: 5s
 
-
+  # System Status Sensors
   - platform: wifi_signal
     name: "WiFi Signal"
+    id: wifi_signal_strength
     update_interval: 120s
     entity_category: diagnostic
   - platform: uptime
-    name: "Uptime"
+    name: "Device Uptime"
+    id: device_uptime
     update_interval: 120s
     entity_category: diagnostic
+
+  # Pump Speed Sensors
   - platform: template
     name: "Spa Pump 1 Speed"
     id: spa_pump1_speed
@@ -244,133 +245,36 @@ sensor:
       return pump_state;
     entity_category: diagnostic
 
-  - platform: template
-    name: "Debug - Jet 1 Raw"
-    id: debug_jet1_raw
-    unit_of_measurement: ""
-    accuracy_decimals: 0
-    update_interval: 5s
-    lambda: |-
-      // Get raw jet1 state (should be 0 or 1)
-      auto jet_state = id(spa)->get_current_state()->jet1;
-      ESP_LOGD("PUMP_DEBUG", "Jet 1 raw state: %d", jet_state);
-      return jet_state;
-    entity_category: diagnostic
 
-  - platform: template
-    name: "Debug - Jet 2 Raw"
-    id: debug_jet2_raw
-    unit_of_measurement: ""
-    accuracy_decimals: 0
-    update_interval: 5s
-    lambda: |-
-      // Get raw jet2 state (should be 0 or 1)
-      auto jet_state = id(spa)->get_current_state()->jet2;
-      ESP_LOGD("PUMP_DEBUG", "Jet 2 raw state: %d", jet_state);
-      return jet_state;
-    entity_category: diagnostic
-
-  - platform: template
-    name: "Debug - Status Byte 16"
-    id: debug_status_byte_16
-    unit_of_measurement: ""
-    accuracy_decimals: 0
-    update_interval: 5s
-    lambda: |-
-      auto byte_val = id(spa)->get_status_byte_16();
-      ESP_LOGD("PUMP_DEBUG", "Status Byte 16: 0x%02X", byte_val);
-      return byte_val;
-    entity_category: diagnostic
-
-  - platform: template
-    name: "Debug - Status Byte 17"
-    id: debug_status_byte_17
-    unit_of_measurement: ""
-    accuracy_decimals: 0
-    update_interval: 5s
-    lambda: |-
-      auto byte_val = id(spa)->get_status_byte_17();
-      ESP_LOGD("PUMP_DEBUG", "Status Byte 17: 0x%02X", byte_val);
-      return byte_val;
-    entity_category: diagnostic
-
-  - platform: template
-    name: "Debug - Status Byte 18"
-    id: debug_status_byte_18
-    unit_of_measurement: ""
-    accuracy_decimals: 0
-    update_interval: 5s
-    lambda: |-
-      auto byte_val = id(spa)->get_status_byte_18();
-      ESP_LOGD("PUMP_DEBUG", "Status Byte 18: 0x%02X", byte_val);
-      return byte_val;
-    entity_category: diagnostic
-
-
-
-
-
-  - platform: template
-    name: "Debug - Status Byte 19"
-    id: debug_status_byte_19
-    unit_of_measurement: ""
-    accuracy_decimals: 0
-    update_interval: 5s
-    lambda: |-
-      auto byte_val = id(spa)->get_status_byte_19();
-      ESP_LOGD("PUMP_DEBUG", "Status Byte 19: 0x%02X", byte_val);
-      return byte_val;
-    entity_category: diagnostic
-
-  - platform: template
-    name: "Debug - Pump Interdependency"
-    id: debug_pump_interdependency
-    unit_of_measurement: ""
-    accuracy_decimals: 0
-    update_interval: 5s
-    lambda: |-
-      auto pump1 = id(spa)->get_current_state()->pump1;
-      auto pump2 = id(spa)->get_current_state()->pump2;
-      ESP_LOGD("PUMP_DEBUG", "Pump1: %d, Pump2: %d - Interdependency check", pump1, pump2);
-      
-      // Check if pump2 is on and pump1 is automatically on
-      if (pump2 > 0 && pump1 > 0) {
-        ESP_LOGD("PUMP_DEBUG", "Pump2 is ON and Pump1 is also ON (interdependency detected)");
-      }
-      return pump1 * 10 + pump2; // Combine both values for easy reading
-    entity_category: diagnostic
-
-# =============================================================================
-# FILTER SCHEDULE CONTROLS
-# =============================================================================
-
-# Note: Number components for schedule changes removed - spa doesn't support remote schedule updates
-# Filter 2 enable/disable switch is still available and working
 
 # =============================================================================
 # BINARY SENSORS
 # =============================================================================
 
 binary_sensor:
+  # System Status
   - platform: status
     name: "Device Status"
+    id: device_status
     entity_category: diagnostic
+
+  # Filter Status
   - platform: balboa_spa
     filter1_active:
-      name: "Filter 1 Enabled"
+      name: "Filter 1 Active"
       id: spa_filter1_active
       icon: "mdi:filter"
       entity_category: diagnostic
     filter2_active:
-      name: "Filter 2 Enabled"
+      name: "Filter 2 Active"
       id: spa_filter2_active
       icon: "mdi:filter"
       entity_category: diagnostic
 
-
+  # Pump Status
   - platform: template
     name: "Spa Pump 1 Running"
-    id: spa_pump1_running_template
+    id: spa_pump1_running
     lambda: |-
       // Use actual pump speed instead of switch state
       auto pump_speed = id(spa)->get_current_state()->pump1;
@@ -380,7 +284,7 @@ binary_sensor:
 
   - platform: template
     name: "Spa Pump 2 Running"
-    id: spa_pump2_running_template
+    id: spa_pump2_running
     lambda: |-
       // Use actual pump speed instead of switch state
       auto pump_speed = id(spa)->get_current_state()->pump2;
@@ -390,7 +294,7 @@ binary_sensor:
 
   - platform: template
     name: "Spa Pump 1 Low Speed"
-    id: spa_pump1_low
+    id: spa_pump1_low_speed
     lambda: |-
       // Check if pump1 is in low speed state (value = 1)
       return id(spa)->get_current_state()->pump1 == 1;
@@ -399,7 +303,7 @@ binary_sensor:
 
   - platform: template
     name: "Spa Pump 1 High Speed"
-    id: spa_pump1_high
+    id: spa_pump1_high_speed
     lambda: |-
       // Check if pump1 is in high speed state (value = 2)
       return id(spa)->get_current_state()->pump1 == 2;
@@ -447,24 +351,31 @@ binary_sensor:
 # =============================================================================
 
 text_sensor:
+  # System Info
   - platform: wifi_info
     ip_address:
-      name: "IP Address"
+      name: "Device IP Address"
+      id: device_ip_address
       entity_category: diagnostic
       update_interval: 60s
     ssid:
-      name: "Connected SSID"
+      name: "Connected WiFi SSID"
+      id: connected_wifi_ssid
       entity_category: diagnostic
       update_interval: 60s
     mac_address:
-      name: "MAC Address"
+      name: "Device MAC Address"
+      id: device_mac_address
       entity_category: diagnostic
   - platform: version
     name: "ESPHome Version"
+    id: esphome_version
     entity_category: diagnostic
+
+  # Spa Info
   - platform: template
-    name: "Spa Time"
-    id: spa_time
+    name: "Spa Time Display"
+    id: spa_time_display
     lambda: |-
       int hour = (int)id(spa_clock_hour).state;
       int minute = (int)id(spa_clock_minute).state;
@@ -491,6 +402,7 @@ text_sensor:
       return {buf};
     update_interval: 120s
     entity_category: diagnostic
+
   - platform: template
     name: "Filter 1 Schedule"
     id: spa_filter1_schedule
@@ -551,6 +463,7 @@ text_sensor:
       return {buf};
     update_interval: 60s
     entity_category: diagnostic
+
   - platform: template
     name: "Filter 2 Schedule"
     id: spa_filter2_schedule
@@ -617,14 +530,17 @@ text_sensor:
 # =============================================================================
 
 button:
+  # System Controls
   - platform: restart
-    name: "Restart"
-    id: spa_restart_btn
-    entity_category: diagnostic
+    name: "Restart Device"
+    id: device_restart
+    entity_category: config
+
+  # Spa Controls
   - platform: template
     name: "Sync Spa Time"
-    id: sync_spa_time
-    entity_category: diagnostic
+    id: spa_time_sync
+    entity_category: config
     on_press:
       then:
         - lambda: |-
@@ -651,8 +567,8 @@ button:
 
   - platform: template
     name: "Pump 1 Cycle State"
-    id: pump1_cycle_button
-    entity_category: diagnostic
+    id: spa_pump1_cycle
+    entity_category: config
     on_press:
       then:
         - lambda: |-
@@ -662,23 +578,23 @@ button:
             if (current_speed == 0) {
               // OFF → LOW
               ESP_LOGD("PUMP_CONTROL", "Turning Pump 1 ON (LOW)");
-              id(spa_pump1).turn_on();
+              id(spa_pump1_control).turn_on();
             } else if (current_speed == 1) {
               // LOW → HIGH (turn off then on again)
               ESP_LOGD("PUMP_CONTROL", "Cycling Pump 1 to HIGH");
-              id(spa_pump1).turn_off();
+              id(spa_pump1_control).turn_off();
               delay(100);
-              id(spa_pump1).turn_on();
+              id(spa_pump1_control).turn_on();
             } else if (current_speed == 2) {
               // HIGH → OFF
               ESP_LOGD("PUMP_CONTROL", "Turning Pump 1 OFF");
-              id(spa_pump1).turn_off();
+              id(spa_pump1_control).turn_off();
             }
 
   - platform: template
     name: "Pump 2 Toggle"
-    id: pump2_toggle_button
-    entity_category: diagnostic
+    id: spa_pump2_toggle
+    entity_category: config
     on_press:
       then:
         - lambda: |-
@@ -688,17 +604,17 @@ button:
             if (current_speed == 0) {
               // OFF → ON
               ESP_LOGD("PUMP_CONTROL", "Turning Pump 2 ON");
-              id(spa_pump2).turn_on();
+              id(spa_pump2_control).turn_on();
             } else {
               // ON → OFF
               ESP_LOGD("PUMP_CONTROL", "Turning Pump 2 OFF");
-              id(spa_pump2).turn_off();
+              id(spa_pump2_control).turn_off();
             }
 
   - platform: template
     name: "Spa Light Toggle"
-    id: spa_light_toggle_button
-    entity_category: diagnostic
+    id: spa_light_toggle
+    entity_category: config
     on_press:
       then:
         - lambda: |-
@@ -708,16 +624,12 @@ button:
             if (light_state == 0) {
               // OFF → ON
               ESP_LOGD("LIGHT_CONTROL", "Turning Light ON");
-              id(spa_light).turn_on();
+              id(spa_light_control).turn_on();
             } else {
               // ON → OFF
               ESP_LOGD("LIGHT_CONTROL", "Turning Light OFF");
-              id(spa_light).turn_off();
+              id(spa_light_control).turn_off();
             }
-
-
-
-
 
 # =============================================================================
 # AUTOMATIONS
@@ -730,11 +642,7 @@ interval:
   - interval: 48h
     then:
       - logger.log: "Auto-restarting device for stability"
-      - button.press:  spa_restart_btn
-
-
-
-
+      - button.press: device_restart
 
 # =============================================================================
 # FILTER MANAGEMENT EXTENSIONS (New Features)
@@ -746,4 +654,4 @@ interval:
 # - filter2_running_status: Shows if Filter 2 is currently running
 # - filter2_enable switch for enabling/disabling Filter 2
 #
-# See example_config_with_filters.yaml for complete implementation.
+# See example_config_with_filters.yaml for complete implementation. 

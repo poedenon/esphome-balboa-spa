@@ -1,0 +1,333 @@
+# Home Assistant Configuration for ESPHome Balboa Spa Entities
+# This file shows how to organize and configure the entities from the ESPHome Balboa Spa
+
+# =============================================================================
+# AREA CONFIGURATION
+# =============================================================================
+
+# Create a "Backyard" area for all spa-related entities
+# In Home Assistant UI: Configuration > Areas > Add Area "Backyard"
+
+# =============================================================================
+# DEVICE GROUPING
+# =============================================================================
+
+# In Home Assistant UI: Configuration > Devices > ESPHome Balboa Spa Monitor
+# This will automatically group all entities from the ESPHome device
+
+# =============================================================================
+# ENTITY ORGANIZATION
+# =============================================================================
+
+# Primary Controls (User-facing)
+# These are the main controls users will interact with
+primary_controls:
+  - climate.spa_thermostat  # Main temperature control
+  - button.spa_pump1_cycle  # Pump 1 cycle control
+  - button.spa_pump2_toggle  # Pump 2 toggle
+  - button.spa_light_toggle  # Light toggle
+  - button.spa_time_sync  # Time sync
+
+# Status Sensors (Important monitoring)
+status_sensors:
+  - sensor.spa_heat_state  # Heating status
+  - sensor.spa_circulation  # Circulation status
+  - binary_sensor.spa_pump1_running  # Pump 1 running status
+  - binary_sensor.spa_pump2_running  # Pump 2 running status
+  - binary_sensor.spa_light_running  # Light status
+  - binary_sensor.filter1_running_status  # Filter 1 status
+  - binary_sensor.filter2_running_status  # Filter 2 status
+
+# Diagnostic Sensors (Technical monitoring)
+diagnostic_sensors:
+  - sensor.spa_pump1_speed  # Pump 1 speed level
+  - sensor.spa_pump2_speed  # Pump 2 speed level
+  - binary_sensor.spa_pump1_low_speed  # Pump 1 low speed
+  - binary_sensor.spa_pump1_high_speed  # Pump 1 high speed
+  - binary_sensor.pump2_auto_started_pump1  # Pump interdependency
+  - sensor.wifi_signal_strength  # WiFi signal
+  - sensor.device_uptime  # Device uptime
+  - binary_sensor.device_status  # Device online status
+
+# Debug Sensors (Development/troubleshooting)
+debug_sensors:
+  - sensor.debug_jet1_raw
+  - sensor.debug_jet2_raw
+  - sensor.debug_status_byte_16
+  - sensor.debug_status_byte_17
+  - sensor.debug_status_byte_18
+  - sensor.debug_status_byte_19
+  - sensor.debug_pump_interdependency
+
+# Information Sensors
+info_sensors:
+  - text_sensor.spa_time_display  # Current spa time
+  - text_sensor.spa_filter1_schedule  # Filter 1 schedule
+  - text_sensor.spa_filter2_schedule  # Filter 2 schedule
+  - text_sensor.device_ip_address  # Device IP
+  - text_sensor.connected_wifi_ssid  # WiFi SSID
+  - text_sensor.device_mac_address  # MAC address
+  - text_sensor.esphome_version  # ESPHome version
+
+# =============================================================================
+# DASHBOARD CONFIGURATION
+# =============================================================================
+
+# Example Lovelace dashboard configuration
+# Add this to your Lovelace dashboard
+
+lovelace_example:
+  title: "Spa Control"
+  views:
+    - title: "Spa Control"
+      path: spa-control
+      type: custom:grid-layout
+      badges: []
+      cards:
+        # Main Controls
+        - type: vertical-stack
+          title: "Spa Controls"
+          cards:
+            - type: thermostat
+              entity: climate.spa_thermostat
+              name: "Spa Temperature"
+            - type: horizontal-stack
+              cards:
+                - type: button
+                  entity: button.spa_pump1_cycle
+                  name: "Pump 1"
+                  icon: mdi:pump
+                - type: button
+                  entity: button.spa_pump2_toggle
+                  name: "Pump 2"
+                  icon: mdi:pump
+                - type: button
+                  entity: button.spa_light_toggle
+                  name: "Light"
+                  icon: mdi:lightbulb
+            - type: button
+              entity: button.spa_time_sync
+              name: "Sync Time"
+              icon: mdi:clock-sync
+
+        # Status Overview
+        - type: entities
+          title: "Spa Status"
+          entities:
+            - entity: binary_sensor.spa_pump1_running
+              name: "Pump 1 Running"
+            - entity: binary_sensor.spa_pump2_running
+              name: "Pump 2 Running"
+            - entity: binary_sensor.spa_light_running
+              name: "Light On"
+            - entity: binary_sensor.filter1_running_status
+              name: "Filter 1 Running"
+            - entity: binary_sensor.filter2_running_status
+              name: "Filter 2 Running"
+            - entity: sensor.spa_heat_state
+              name: "Heat State"
+            - entity: sensor.spa_circulation
+              name: "Circulation"
+
+        # System Status
+        - type: entities
+          title: "System Status"
+          entities:
+            - entity: binary_sensor.device_status
+              name: "Device Online"
+            - entity: sensor.wifi_signal_strength
+              name: "WiFi Signal"
+            - entity: sensor.device_uptime
+              name: "Uptime"
+            - entity: text_sensor.spa_time_display
+              name: "Spa Time"
+            - entity: text_sensor.spa_filter1_schedule
+              name: "Filter 1 Schedule"
+            - entity: text_sensor.spa_filter2_schedule
+              name: "Filter 2 Schedule"
+
+# =============================================================================
+# AUTOMATION EXAMPLES
+# =============================================================================
+
+# Example automations using the new entity naming
+
+automation_examples:
+  # Notify when spa is ready
+  - alias: "Spa Ready Notification"
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.spa_heat_state
+      above: 0
+    condition:
+      condition: numeric_state
+      entity_id: climate.spa_thermostat
+      above: 98
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Spa Ready!"
+          message: "Your spa has reached the desired temperature."
+
+  # Monitor pump usage
+  - alias: "Pump 1 High Speed Alert"
+    trigger:
+      platform: state
+      entity_id: binary_sensor.spa_pump1_high_speed
+      to: "on"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Spa Pump 1 High Speed"
+          message: "Pump 1 is running at high speed."
+
+  # Auto-restart if device goes offline
+  - alias: "Spa Device Offline Alert"
+    trigger:
+      platform: state
+      entity_id: binary_sensor.device_status
+      to: "off"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Spa Monitor Offline"
+          message: "The spa monitoring device has gone offline."
+
+# =============================================================================
+# SCRIPT EXAMPLES
+# =============================================================================
+
+# Example scripts using the new entity naming
+
+script_examples:
+  # Spa startup sequence
+  spa_startup:
+    alias: "Spa Startup"
+    sequence:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.spa_thermostat
+        data:
+          temperature: 102
+      - service: button.press
+        target:
+          entity_id: button.spa_pump1_cycle
+      - delay:
+          seconds: 30
+      - service: button.press
+        target:
+          entity_id: button.spa_light_toggle
+
+  # Spa shutdown sequence
+  spa_shutdown:
+    alias: "Spa Shutdown"
+    sequence:
+      - service: button.press
+        target:
+          entity_id: button.spa_pump1_cycle
+      - service: button.press
+        target:
+          entity_id: button.spa_pump2_toggle
+      - service: button.press
+        target:
+          entity_id: button.spa_light_toggle
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.spa_thermostat
+        data:
+          temperature: 80
+
+# =============================================================================
+# TEMPLATE SENSORS
+# =============================================================================
+
+# Example template sensors for derived information
+
+template_sensor_examples:
+  # Combined pump status
+  - platform: template
+    sensors:
+      spa_pump_status:
+        friendly_name: "Spa Pump Status"
+        value_template: >-
+          {% set pump1 = states('binary_sensor.spa_pump1_running') %}
+          {% set pump2 = states('binary_sensor.spa_pump2_running') %}
+          {% if pump1 == 'on' and pump2 == 'on' %}
+            Both Pumps Running
+          {% elif pump1 == 'on' %}
+            Pump 1 Only
+          {% elif pump2 == 'on' %}
+            Pump 2 Only
+          {% else %}
+            No Pumps Running
+          {% endif %}
+
+  # Spa operational status
+  - platform: template
+    sensors:
+      spa_operational_status:
+        friendly_name: "Spa Operational Status"
+        value_template: >-
+          {% set heat_state = states('sensor.spa_heat_state') | int %}
+          {% set pump1 = states('binary_sensor.spa_pump1_running') %}
+          {% set pump2 = states('binary_sensor.spa_pump2_running') %}
+          {% if heat_state > 0 %}
+            Heating
+          {% elif pump1 == 'on' or pump2 == 'on' %}
+            Running
+          {% else %}
+            Idle
+          {% endif %}
+
+# =============================================================================
+# ENTITY CUSTOMIZATION
+# =============================================================================
+
+# Example entity customizations for better UI experience
+
+entity_customization_examples:
+  # Hide debug entities from main UI
+  sensor.debug_jet1_raw:
+    hidden: true
+  sensor.debug_jet2_raw:
+    hidden: true
+  sensor.debug_status_byte_16:
+    hidden: true
+  sensor.debug_status_byte_17:
+    hidden: true
+  sensor.debug_status_byte_18:
+    hidden: true
+  sensor.debug_status_byte_19:
+    hidden: true
+  sensor.debug_pump_interdependency:
+    hidden: true
+
+  # Customize icons for better visual representation
+  binary_sensor.spa_pump1_running:
+    icon: mdi:pump
+  binary_sensor.spa_pump2_running:
+    icon: mdi:pump
+  binary_sensor.spa_light_running:
+    icon: mdi:lightbulb
+  binary_sensor.filter1_running_status:
+    icon: mdi:filter-variant
+  binary_sensor.filter2_running_status:
+    icon: mdi:filter-variant
+
+# =============================================================================
+# INTEGRATION NOTES
+# =============================================================================
+
+# When integrating with ESPHome:
+# 1. All entities will be automatically discovered
+# 2. Assign the "Backyard" area to the ESPHome device
+# 3. Use the entity IDs as shown in the examples above
+# 4. Debug entities are hidden by default but available for troubleshooting
+# 5. All entities follow the naming convention: {domain}.{device_type}_{location}_{function}_{instance}
+
+# Benefits of this organization:
+# - Clear separation between user controls and diagnostic information
+# - Easy to create focused dashboards
+# - Consistent naming makes automations and scripts easier to write
+# - Debug entities are available but don't clutter the main UI
+# - All entities are properly categorized for Home Assistant's entity management 
