@@ -13,8 +13,18 @@ void BalboaSpaBinarySensors::set_parent(BalboaSpa *parent) {
 
 void BalboaSpaBinarySensors::update(SpaState* spaState) {
     bool sensor_state_value;
-    if (spa == nullptr || ( !spa->is_communicating() && sensor_type != BalboaSpaBinarySensorType::CONNECTED )){
-        this->publish_state(NAN);
+    
+    // Handle communication status sensor separately
+    if (sensor_type == BalboaSpaBinarySensorType::CONNECTED) {
+        sensor_state_value = spa->is_communicating();
+        if(this->state != sensor_state_value) {
+            this->publish_state(sensor_state_value);
+        }
+        return;
+    }
+    
+    // Early return if spa is null or not communicating for other sensors
+    if (spa == nullptr || !spa->is_communicating()) {
         return;
     }
 
@@ -46,9 +56,6 @@ void BalboaSpaBinarySensors::update(SpaState* spaState) {
                 return;
             }
             break;
-        case BalboaSpaBinarySensorType::CONNECTED:
-            sensor_state_value = spa->is_communicating();
-            break;
         case BalboaSpaBinarySensorType::FILTER1_ACTIVE:
             sensor_state_value = spa->is_filter1_enabled();
             break;
@@ -59,7 +66,7 @@ void BalboaSpaBinarySensors::update(SpaState* spaState) {
             sensor_state_value = spa->is_filter1_running();
             break;
         case BalboaSpaBinarySensorType::FILTER2_RUNNING:
-            sensor_state_value = spa->is_filter2_running();
+            sensor_state_value = spa->is_filter2_enabled() && spa->is_filter2_running();
             break;
         case BalboaSpaBinarySensorType::PUMP1_RUNNING:
             sensor_state_value = (spaState->pump1 > 0);  // Running if not 0 (off)
@@ -71,11 +78,11 @@ void BalboaSpaBinarySensors::update(SpaState* spaState) {
             sensor_state_value = (spaState->pump3 > 0);  // Running if not 0 (off)
             break;
         default:
-            ESP_LOGD(TAG, "Spa/BSensors/UnknownSensorType: SensorType Number: %d", sensor_type);
-            // Unknown enum value. Ignore
+            ESP_LOGD(TAG, "Unknown binary sensor type: %d", sensor_type);
             return;
     }
 
+    // Only publish if state has changed or forced update interval
     if(this->state != sensor_state_value || this->last_update_time + 300000 < millis()) {
         this->publish_state(sensor_state_value);
         last_update_time = millis();

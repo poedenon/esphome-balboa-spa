@@ -115,6 +115,7 @@ class BalboaSpa : public uart::UARTDevice, public PollingComponent {
     uint8_t target_minute = 0x00;
     uint8_t client_id = 0x00;
     uint32_t last_received_time = 0;
+    uint32_t last_filtersettings_request = 0;  // Track last filter settings request time
     uint8_t last_pump_status_byte = 0x00;  // Store the raw pump status byte
     uint8_t last_status_byte_16 = 0x00;    // Store status byte 16
     uint8_t last_status_byte_17 = 0x00;    // Store status byte 17

@@ -5,24 +5,42 @@ namespace balboa_spa {
 
 static const char *TAG = "BalboaSpa.component";
 
+// Optimized constants for better performance
+static const uint32_t COMMUNICATION_TIMEOUT_MS = 10000;
+static const uint32_t FILTER_SETTINGS_REQUEST_INTERVAL_MS = 60000;
+static const uint32_t MINUTES_PER_DAY = 1440;
+
 void BalboaSpa::setup() {
     input_queue.clear();
     output_queue.clear();
+    // Initialize state tracking
+    last_received_time = 0;
+    last_filtersettings_request = 0;
+    client_id = 0;
+    send_command = 0x00;
+    config_request_status = 0;
+    faultlog_request_status = 0;
+    filtersettings_request_status = 0;
+    last_state_crc = 0;
+    
+    // Debug temperature scale initialization
+    ESP_LOGD(TAG, "Setup - Initial spa_temp_scale: %d, esphome_temp_scale: %d", spa_temp_scale, esphome_temp_scale);
 }
 
 void BalboaSpa::update() {
     uint32_t now = millis();
-    if (last_received_time + 10000 < now) {
-        ESP_LOGW(TAG, "No new message since %d Seconds! Mark as dead!", (now - last_received_time) / 1000);
+    
+    // Check communication timeout with optimized logic
+    if (last_received_time > 0 && (now - last_received_time) > COMMUNICATION_TIMEOUT_MS) {
+        ESP_LOGW(TAG, "No communication for %d seconds - marking as dead!", (now - last_received_time) / 1000);
         status_set_error("No Communication with Balboa Mainboard!");
         client_id = 0;
     } else if (status_has_error()) {
         status_clear_error();
     }
 
-    // Periodically request filter settings every 60 seconds
-    static uint32_t last_filtersettings_request = 0;
-    if (now - last_filtersettings_request > 60000) {
+    // Optimized periodic filter settings request
+    if (now - last_filtersettings_request > FILTER_SETTINGS_REQUEST_INTERVAL_MS) {
         if (client_id != 0) {
             output_queue.push(client_id);
             output_queue.push(0xBF);
@@ -36,13 +54,18 @@ void BalboaSpa::update() {
         last_filtersettings_request = now;
     }
 
+    // Process available serial data
     while (available()) {
       read_serial();
     }
 
-    // Run through listeners
-    for (const auto &listener : this->listeners_) {
-      listener(&spaState);
+    // Run through listeners with null check
+    if (!this->listeners_.empty()) {
+      for (const auto &listener : this->listeners_) {
+        if (listener) {
+          listener(&spaState);
+        }
+      }
     }
 }
 
@@ -54,25 +77,33 @@ SpaState* BalboaSpa::get_current_state() { return &spaState; }
 void BalboaSpa::set_temp(float temp) {
     float target_temp = 0.0;
 
-    if (esphome_temp_scale == TEMP_SCALE::C &&
-        temp >= ESPHOME_BALBOASPA_MIN_TEMPERATURE_C &&
-        temp <= ESPHOME_BALBOASPA_MAX_TEMPERATURE_C) {
-        target_temp = temp;
-    } else if (esphome_temp_scale == TEMP_SCALE::F &&
-               temp >= ESPHOME_BALBOASPA_MIN_TEMPERATURE_F &&
-               temp <= ESPHOME_BALBOASPA_MAX_TEMPERATURE_F) {
-        target_temp = convert_f_to_c(temp);
+    // Optimized temperature validation
+    if (esphome_temp_scale == TEMP_SCALE::C) {
+        if (temp >= ESPHOME_BALBOASPA_MIN_TEMPERATURE_C && temp <= ESPHOME_BALBOASPA_MAX_TEMPERATURE_C) {
+            target_temp = temp;
+        } else {
+            ESP_LOGW(TAG, "Invalid Celsius temperature: %.1f", temp);
+            return;
+        }
+    } else if (esphome_temp_scale == TEMP_SCALE::F) {
+        if (temp >= ESPHOME_BALBOASPA_MIN_TEMPERATURE_F && temp <= ESPHOME_BALBOASPA_MAX_TEMPERATURE_F) {
+            target_temp = convert_f_to_c(temp);
+        } else {
+            ESP_LOGW(TAG, "Invalid Fahrenheit temperature: %.1f", temp);
+            return;
+        }
     } else {
-        ESP_LOGW(TAG, "set_temp(%f): is INVALID! %d", temp, esphome_temp_scale);
+        ESP_LOGW(TAG, "Invalid temperature scale: %d", esphome_temp_scale);
         return;
     }
 
+    // Set target temperature based on spa scale
     if (spa_temp_scale == TEMP_SCALE::C) {
         target_temperature = target_temp * 2;
     } else if (spa_temp_scale == TEMP_SCALE::F) {
         target_temperature = convert_c_to_f(target_temp);
     } else {
-        ESP_LOGW(TAG, "set_temp(%f): spa_temp_scale not set. Ignoring %d", temp, spa_temp_scale);
+        ESP_LOGW(TAG, "Spa temperature scale not set: %d", spa_temp_scale);
         return;
     }
 
@@ -80,8 +111,8 @@ void BalboaSpa::set_temp(float temp) {
 }
 
 void BalboaSpa::set_highrange(bool high) {
-    ESP_LOGD(TAG, "highrange=%d to %d requested", spaState.highrange, high);
     if (high != spaState.highrange) {
+        ESP_LOGD(TAG, "Setting highrange: %d -> %d", spaState.highrange, high);
         send_command = 0x50;
     }
 }
@@ -90,6 +121,8 @@ void BalboaSpa::set_hour(int hour) {
     if (hour >= 0 && hour <= 23) {
         target_hour = hour;
         send_command = 0x21;
+    } else {
+        ESP_LOGW(TAG, "Invalid hour: %d", hour);
     }
 }
 
@@ -97,6 +130,8 @@ void BalboaSpa::set_minute(int minute) {
     if (minute >= 0 && minute <= 59) {
         target_minute = minute;
         send_command = 0x21;
+    } else {
+        ESP_LOGW(TAG, "Invalid minute: %d", minute);
     }
 }
 
@@ -381,51 +416,66 @@ void BalboaSpa::decodeSettings() {
 
 void BalboaSpa::decodeState() {
 
+    // Debug temperature parsing
+    ESP_LOGD(TAG, "Temperature parsing - spa_temp_scale: %d, esphome_temp_scale: %d", spa_temp_scale, esphome_temp_scale);
+    ESP_LOGD(TAG, "Raw temperature bytes - target: 0x%02X, current: 0x%02X", input_queue[25], input_queue[7]);
     
-    // 25:Flag Byte 20 - Set Temperature
-    double temp_read = 0.0;
+    // 25:Flag Byte 20 - Set Temperature (Target)
+    if (input_queue[25] != 0xFF) {  // Check for valid temperature value
+        double temp_read = 0.0;
 
-    if (spa_temp_scale == TEMP_SCALE::C) {
-        temp_read = input_queue[25] / 2;
-    } else if (spa_temp_scale == TEMP_SCALE::F) {
-        temp_read = convert_f_to_c(input_queue[25]);
-    }
-    
-    if (esphome_temp_scale == TEMP_SCALE::C &&
-        temp_read >= ESPHOME_BALBOASPA_MIN_TEMPERATURE_C &&
-        temp_read <= ESPHOME_BALBOASPA_MAX_TEMPERATURE_C) {
-        spaState.target_temp = temp_read;
-        ESP_LOGD(TAG, "Spa/temperature/target: %.2f C", temp_read);
-    } else if (esphome_temp_scale == TEMP_SCALE::F &&
-               temp_read >= ESPHOME_BALBOASPA_MIN_TEMPERATURE_F &&
-               temp_read <= ESPHOME_BALBOASPA_MAX_TEMPERATURE_F) {
-        spaState.target_temp = convert_c_to_f(temp_read);
-        ESP_LOGD(TAG, "Spa/temperature/target: %.2f F", temp_read);
-    } else {
-        ESP_LOGW(TAG, "Spa/temperature/target INVALID %2.f %.2f %d %d",
-                 input_queue[25], temp_read, spaConfig.temperature_scale, esphome_temp_scale);
-    }
-
-    // 7:Flag Byte 2 - Actual temperature
-    if (input_queue[7] != 0xFF) {
         if (spa_temp_scale == TEMP_SCALE::C) {
-            temp_read = input_queue[7] / 2;
+            temp_read = input_queue[25] / 2.0;
+        } else if (spa_temp_scale == TEMP_SCALE::F) {
+            temp_read = convert_f_to_c(input_queue[25]);
+        } else {
+            ESP_LOGW(TAG, "Unknown spa temperature scale: %d", spa_temp_scale);
+            temp_read = input_queue[25] / 2.0; // Default to Celsius
+        }
+        
+        // Validate temperature range
+        if (temp_read >= ESPHOME_BALBOASPA_MIN_TEMPERATURE_C && temp_read <= ESPHOME_BALBOASPA_MAX_TEMPERATURE_C) {
+            if (esphome_temp_scale == TEMP_SCALE::C) {
+                spaState.target_temp = temp_read;
+                ESP_LOGD(TAG, "Spa/temperature/target: %.2f C", temp_read);
+            } else if (esphome_temp_scale == TEMP_SCALE::F) {
+                spaState.target_temp = convert_c_to_f(temp_read);
+                ESP_LOGD(TAG, "Spa/temperature/target: %.2f F", spaState.target_temp);
+            }
+        } else {
+            ESP_LOGW(TAG, "Target temperature out of range: %.2f (raw: 0x%02X)", temp_read, input_queue[25]);
+        }
+    } else {
+        ESP_LOGD(TAG, "Target temperature byte is 0xFF (no valid value)");
+    }
+
+    // 7:Flag Byte 2 - Actual temperature (Current)
+    if (input_queue[7] != 0xFF) {  // Check for valid temperature value
+        double temp_read = 0.0;
+
+        if (spa_temp_scale == TEMP_SCALE::C) {
+            temp_read = input_queue[7] / 2.0;
         } else if (spa_temp_scale == TEMP_SCALE::F) {
             temp_read = convert_f_to_c(input_queue[7]);
-        }
-
-
-        
-        if (esphome_temp_scale == TEMP_SCALE::C) {
-            spaState.current_temp = temp_read;
-            ESP_LOGD(TAG, "Spa/temperature/current: %.2f C", temp_read);
-        } else if (esphome_temp_scale == TEMP_SCALE::F) {
-            spaState.current_temp = convert_c_to_f(temp_read);
-            ESP_LOGD(TAG, "Spa/temperature/current: %.2f F", temp_read);
         } else {
-            ESP_LOGW(TAG, "Spa/temperature/current INVALID %2.f %.2f %d %d",
-                     input_queue[7], temp_read, spaConfig.temperature_scale, esphome_temp_scale);
+            ESP_LOGW(TAG, "Unknown spa temperature scale: %d", spa_temp_scale);
+            temp_read = input_queue[7] / 2.0; // Default to Celsius
         }
+        
+        // Validate temperature range
+        if (temp_read >= ESPHOME_BALBOASPA_MIN_TEMPERATURE_C && temp_read <= ESPHOME_BALBOASPA_MAX_TEMPERATURE_C) {
+            if (esphome_temp_scale == TEMP_SCALE::C) {
+                spaState.current_temp = temp_read;
+                ESP_LOGD(TAG, "Spa/temperature/current: %.2f C", temp_read);
+            } else if (esphome_temp_scale == TEMP_SCALE::F) {
+                spaState.current_temp = convert_c_to_f(temp_read);
+                ESP_LOGD(TAG, "Spa/temperature/current: %.2f F", spaState.current_temp);
+            }
+        } else {
+            ESP_LOGW(TAG, "Current temperature out of range: %.2f (raw: 0x%02X)", temp_read, input_queue[7]);
+        }
+    } else {
+        ESP_LOGD(TAG, "Current temperature byte is 0xFF (no valid value)");
     }
 
     // 8:Flag Byte 3 Hour & 9:Flag Byte 4 Minute => Time
@@ -648,10 +698,12 @@ bool BalboaSpa::is_communicating() {
 }
 
 void BalboaSpa::set_spa_temp_scale(TEMP_SCALE scale) {
+    ESP_LOGD(TAG, "Setting spa temperature scale: %d", scale);
     spa_temp_scale = scale;
 }
 
 void BalboaSpa::set_esphome_temp_scale(TEMP_SCALE scale) {
+    ESP_LOGD(TAG, "Setting ESPHome temperature scale: %d", scale);
     esphome_temp_scale = scale;
 }
 
@@ -797,74 +849,83 @@ uint32_t BalboaSpa::get_filter2_current_runtime_minutes() const {
 void BalboaSpa::update_filter_status() {
     uint32_t current_time = millis();
     
-    // Check if filter 1 should be running based on schedule
-    bool filter1_should_run = false;
-    if (spaFilterSettings.filter1_duration_hour > 0 || spaFilterSettings.filter1_duration_minute > 0) {
-        uint32_t current_minutes = spaState.hour * 60 + spaState.minutes;
-        uint32_t filter_start_minutes = spaFilterSettings.filter1_hour * 60 + spaFilterSettings.filter1_minute;
-        uint32_t filter_duration_minutes = spaFilterSettings.filter1_duration_hour * 60 + spaFilterSettings.filter1_duration_minute;
-        
-        // Check if current time is within filter 1 schedule
-        if (filter_duration_minutes > 0) {
-            uint32_t end_minutes = filter_start_minutes + filter_duration_minutes;
-            if (end_minutes > 1440) { // Wrap around midnight
-                filter1_should_run = (current_minutes >= filter_start_minutes) || (current_minutes < (end_minutes - 1440));
-            } else {
-                filter1_should_run = (current_minutes >= filter_start_minutes) && (current_minutes < end_minutes);
-            }
+    // Optimized filter schedule checking with early returns
+    auto check_filter_schedule = [](uint8_t start_hour, uint8_t start_minute, 
+                                   uint8_t duration_hour, uint8_t duration_minute,
+                                   uint8_t current_hour, uint8_t current_minute) -> bool {
+        // Early return if no duration set
+        if (duration_hour == 0 && duration_minute == 0) {
+            return false;
         }
-    }
+        
+        uint32_t current_minutes = current_hour * 60 + current_minute;
+        uint32_t filter_start_minutes = start_hour * 60 + start_minute;
+        uint32_t filter_duration_minutes = duration_hour * 60 + duration_minute;
+        
+        if (filter_duration_minutes == 0) {
+            return false;
+        }
+        
+        uint32_t end_minutes = filter_start_minutes + filter_duration_minutes;
+        
+        // Handle wrap around midnight
+        if (end_minutes > MINUTES_PER_DAY) {
+            return (current_minutes >= filter_start_minutes) || (current_minutes < (end_minutes - MINUTES_PER_DAY));
+        } else {
+            return (current_minutes >= filter_start_minutes) && (current_minutes < end_minutes);
+        }
+    };
     
-    // Check if filter 2 should be running based on schedule
+    // Check filter schedules
+    bool filter1_should_run = check_filter_schedule(
+        spaFilterSettings.filter1_hour, spaFilterSettings.filter1_minute,
+        spaFilterSettings.filter1_duration_hour, spaFilterSettings.filter1_duration_minute,
+        spaState.hour, spaState.minutes
+    );
+    
     bool filter2_should_run = false;
-    if (spaFilterSettings.filter2_enable && (spaFilterSettings.filter2_duration_hour > 0 || spaFilterSettings.filter2_duration_minute > 0)) {
-        uint32_t current_minutes = spaState.hour * 60 + spaState.minutes;
-        uint32_t filter_start_minutes = spaFilterSettings.filter2_hour * 60 + spaFilterSettings.filter2_minute;
-        uint32_t filter_duration_minutes = spaFilterSettings.filter2_duration_hour * 60 + spaFilterSettings.filter2_duration_minute;
-        
-        // Check if current time is within filter 2 schedule
-        if (filter_duration_minutes > 0) {
-            uint32_t end_minutes = filter_start_minutes + filter_duration_minutes;
-            if (end_minutes > 1440) { // Wrap around midnight
-                filter2_should_run = (current_minutes >= filter_start_minutes) || (current_minutes < (end_minutes - 1440));
-            } else {
-                filter2_should_run = (current_minutes >= filter_start_minutes) && (current_minutes < end_minutes);
-            }
+    if (spaFilterSettings.filter2_enable) {
+        filter2_should_run = check_filter_schedule(
+            spaFilterSettings.filter2_hour, spaFilterSettings.filter2_minute,
+            spaFilterSettings.filter2_duration_hour, spaFilterSettings.filter2_duration_minute,
+            spaState.hour, spaState.minutes
+        );
+    }
+    
+    // Update filter 1 status
+    if (filter1_should_run != spaState.filter1_running) {
+        if (filter1_should_run) {
+            // Filter 1 starting
+            spaState.filter1_running = true;
+            spaState.filter1_last_start_time = current_time;
+            ESP_LOGD(TAG, "Filter 1 started running");
+        } else {
+            // Filter 1 stopping
+            spaState.filter1_running = false;
+            uint32_t runtime_ms = current_time - spaState.filter1_last_start_time;
+            spaState.filter1_runtime_hours += runtime_ms / 3600000; // Convert to hours
+            spaState.filter1_cycles_completed++;
+            ESP_LOGD(TAG, "Filter 1 stopped running, total runtime: %d hours, cycles: %d", 
+                     spaState.filter1_runtime_hours, spaState.filter1_cycles_completed);
         }
     }
     
-    // Update filter 1 running status
-    if (filter1_should_run && !spaState.filter1_running) {
-        // Filter 1 starting
-        spaState.filter1_running = true;
-        spaState.filter1_last_start_time = current_time;
-        ESP_LOGD(TAG, "Filter 1 started running");
-    } else if (!filter1_should_run && spaState.filter1_running) {
-        // Filter 1 stopping
-        spaState.filter1_running = false;
-        // Add runtime to total
-        uint32_t runtime_ms = current_time - spaState.filter1_last_start_time;
-        spaState.filter1_runtime_hours += runtime_ms / 3600000; // Convert to hours
-        spaState.filter1_cycles_completed++;
-        ESP_LOGD(TAG, "Filter 1 stopped running, total runtime: %d hours, cycles: %d", 
-                 spaState.filter1_runtime_hours, spaState.filter1_cycles_completed);
-    }
-    
-    // Update filter 2 running status
-    if (filter2_should_run && !spaState.filter2_running) {
-        // Filter 2 starting
-        spaState.filter2_running = true;
-        spaState.filter2_last_start_time = current_time;
-        ESP_LOGD(TAG, "Filter 2 started running");
-    } else if (!filter2_should_run && spaState.filter2_running) {
-        // Filter 2 stopping
-        spaState.filter2_running = false;
-        // Add runtime to total
-        uint32_t runtime_ms = current_time - spaState.filter2_last_start_time;
-        spaState.filter2_runtime_hours += runtime_ms / 3600000; // Convert to hours
-        spaState.filter2_cycles_completed++;
-        ESP_LOGD(TAG, "Filter 2 stopped running, total runtime: %d hours, cycles: %d", 
-                 spaState.filter2_runtime_hours, spaState.filter2_cycles_completed);
+    // Update filter 2 status
+    if (filter2_should_run != spaState.filter2_running) {
+        if (filter2_should_run) {
+            // Filter 2 starting
+            spaState.filter2_running = true;
+            spaState.filter2_last_start_time = current_time;
+            ESP_LOGD(TAG, "Filter 2 started running");
+        } else {
+            // Filter 2 stopping
+            spaState.filter2_running = false;
+            uint32_t runtime_ms = current_time - spaState.filter2_last_start_time;
+            spaState.filter2_runtime_hours += runtime_ms / 3600000; // Convert to hours
+            spaState.filter2_cycles_completed++;
+            ESP_LOGD(TAG, "Filter 2 stopped running, total runtime: %d hours, cycles: %d", 
+                     spaState.filter2_runtime_hours, spaState.filter2_cycles_completed);
+        }
     }
 }
 

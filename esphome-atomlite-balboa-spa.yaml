@@ -1,5 +1,6 @@
 # Balboa Spa Monitor - ESPHome Configuration with Improved Entity Naming
 # Parameterized for easy hardware customization
+# OPTIMIZED VERSION - Improved performance and reduced resource usage
 
 # =============================================================================
 # HARDWARE CONFIGURATION
@@ -32,6 +33,8 @@ logger:
     uart.arduino_esp32: WARN
     sensor: WARN
     template.sensor: WARN
+    # Reduce logging for better performance
+    balboa_spa: WARN
 
 # Enable Home Assistant API
 api:
@@ -146,28 +149,29 @@ switch:
       id: spa_pump1_control
       icon: "mdi:pump"
       entity_category: diagnostic
+      # Optimized logging - only log state changes
       on_turn_on:
-        - logger.log: "Pump 1 turned ON"
+        - logger.log: "Pump 1: ON"
       on_turn_off:
-        - logger.log: "Pump 1 turned OFF"
+        - logger.log: "Pump 1: OFF"
     jet2:
       name: "Spa Pump 2"
       id: spa_pump2_control
       icon: "mdi:pump"
       entity_category: diagnostic
       on_turn_on:
-        - logger.log: "Pump 2 turned ON"
+        - logger.log: "Pump 2: ON"
       on_turn_off:
-        - logger.log: "Pump 2 turned OFF"
+        - logger.log: "Pump 2: OFF"
     light:
       name: "Spa Light"
       id: spa_light_control
       icon: "mdi:lightbulb"
       entity_category: diagnostic
       on_turn_on:
-        - logger.log: "Light turned ON"
+        - logger.log: "Light: ON"
       on_turn_off:
-        - logger.log: "Light turned OFF"
+        - logger.log: "Light: OFF"
 
 # =============================================================================
 # SENSORS
@@ -181,55 +185,56 @@ sensor:
       id: spa_heat_state
       icon: "mdi:thermometer"
       filters:
-        - throttle: 2s
+        - throttle: 5s  # Increased from 2s for better performance
     circulation:
       name: "Spa Circulation"
       id: spa_circulation
       icon: "mdi:rotate-3d-variant"
       filters:
-        - throttle: 5s
+        - throttle: 10s  # Increased from 5s
     restmode:
       name: "Spa Rest Mode"
       id: spa_rest_mode
       icon: "mdi:sleep"
       filters:
-        - throttle: 5s
+        - throttle: 10s  # Increased from 5s
     spa_clock_hour:
       name: "Spa Clock Hour"
       id: spa_clock_hour
       icon: "mdi:clock-time-four-outline"
       filters:
-        - throttle: 5s
+        - throttle: 30s  # Increased from 5s - time doesn't change frequently
     spa_clock_minute:
       name: "Spa Clock Minute"
       id: spa_clock_minute
       icon: "mdi:clock-time-four-outline"
       filters:
-        - throttle: 5s
+        - throttle: 30s  # Increased from 5s
 
-  # System Status Sensors
+  # System Status Sensors - Optimized update intervals
   - platform: wifi_signal
     name: "WiFi Signal"
     id: wifi_signal_strength
-    update_interval: 120s
+    update_interval: 300s  # Increased from 120s
     entity_category: diagnostic
   - platform: uptime
     name: "Device Uptime"
     id: device_uptime
-    update_interval: 120s
+    update_interval: 300s  # Increased from 120s
     entity_category: diagnostic
 
-  # Pump Speed Sensors
+  # Pump Speed Sensors - Optimized with better error handling
   - platform: template
     name: "Spa Pump 1 Speed"
     id: spa_pump1_speed
     unit_of_measurement: ""
     accuracy_decimals: 0
-    update_interval: 5s
+    update_interval: 10s  # Increased from 5s
     lambda: |-
-      // Get pump state from spa object (0=off, 1=low, 2=high)
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       auto pump_state = id(spa)->get_current_state()->pump1;
-      ESP_LOGD("PUMP_DEBUG", "Pump 1 raw state: %d", pump_state);
       return pump_state;
     entity_category: diagnostic
   - platform: template
@@ -237,15 +242,14 @@ sensor:
     id: spa_pump2_speed
     unit_of_measurement: ""
     accuracy_decimals: 0
-    update_interval: 5s
+    update_interval: 10s  # Increased from 5s
     lambda: |-
-      // Get pump state from spa object (0=off, 1=low, 2=high)
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       auto pump_state = id(spa)->get_current_state()->pump2;
-      ESP_LOGD("PUMP_DEBUG", "Pump 2 raw state: %d", pump_state);
       return pump_state;
     entity_category: diagnostic
-
-
 
 # =============================================================================
 # BINARY SENSORS
@@ -271,12 +275,14 @@ binary_sensor:
       icon: "mdi:filter"
       entity_category: diagnostic
 
-  # Pump Status
+  # Pump Status - Optimized with communication checks
   - platform: template
     name: "Spa Pump 1 Running"
     id: spa_pump1_running
     lambda: |-
-      // Use actual pump speed instead of switch state
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       auto pump_speed = id(spa)->get_current_state()->pump1;
       return pump_speed > 0;
     icon: "mdi:pump"
@@ -286,7 +292,9 @@ binary_sensor:
     name: "Spa Pump 2 Running"
     id: spa_pump2_running
     lambda: |-
-      // Use actual pump speed instead of switch state
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       auto pump_speed = id(spa)->get_current_state()->pump2;
       return pump_speed > 0;
     icon: "mdi:pump"
@@ -296,7 +304,9 @@ binary_sensor:
     name: "Spa Pump 1 Low Speed"
     id: spa_pump1_low_speed
     lambda: |-
-      // Check if pump1 is in low speed state (value = 1)
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       return id(spa)->get_current_state()->pump1 == 1;
     icon: "mdi:pump"
     entity_category: diagnostic
@@ -305,7 +315,9 @@ binary_sensor:
     name: "Spa Pump 1 High Speed"
     id: spa_pump1_high_speed
     lambda: |-
-      // Check if pump1 is in high speed state (value = 2)
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       return id(spa)->get_current_state()->pump1 == 2;
     icon: "mdi:pump"
     entity_category: diagnostic
@@ -314,7 +326,9 @@ binary_sensor:
     name: "Pump 2 Auto-Started Pump 1"
     id: pump2_auto_started_pump1
     lambda: |-
-      // Check if pump2 is on and pump1 is also on (indicating auto-start)
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       auto pump1 = id(spa)->get_current_state()->pump1;
       auto pump2 = id(spa)->get_current_state()->pump2;
       return (pump2 > 0) && (pump1 > 0);
@@ -325,7 +339,9 @@ binary_sensor:
     name: "Spa Light Running"
     id: spa_light_running
     lambda: |-
-      // Check if light is on
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       return id(spa)->get_current_state()->light;
     icon: "mdi:lightbulb"
     entity_category: diagnostic
@@ -334,6 +350,9 @@ binary_sensor:
     name: "Filter 1 Running"
     id: filter1_running_status
     lambda: |-
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       return id(spa)->is_filter1_running();
     entity_category: diagnostic
     icon: "mdi:filter-variant"
@@ -342,6 +361,9 @@ binary_sensor:
     name: "Filter 2 Running"
     id: filter2_running_status
     lambda: |-
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       return id(spa)->is_filter2_enabled() && id(spa)->is_filter2_running();
     entity_category: diagnostic
     icon: "mdi:filter-variant"
@@ -351,18 +373,18 @@ binary_sensor:
 # =============================================================================
 
 text_sensor:
-  # System Info
+  # System Info - Optimized update intervals
   - platform: wifi_info
     ip_address:
       name: "Device IP Address"
       id: device_ip_address
       entity_category: diagnostic
-      update_interval: 60s
+      update_interval: 300s  # Increased from 60s
     ssid:
       name: "Connected WiFi SSID"
       id: connected_wifi_ssid
       entity_category: diagnostic
-      update_interval: 60s
+      update_interval: 300s  # Increased from 60s
     mac_address:
       name: "Device MAC Address"
       id: device_mac_address
@@ -372,11 +394,14 @@ text_sensor:
     id: esphome_version
     entity_category: diagnostic
 
-  # Spa Info
+  # Spa Info - Optimized with better error handling
   - platform: template
     name: "Spa Time Display"
     id: spa_time_display
     lambda: |-
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       int hour = (int)id(spa_clock_hour).state;
       int minute = (int)id(spa_clock_minute).state;
       if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
@@ -400,13 +425,16 @@ text_sensor:
       char buf[8];
       snprintf(buf, sizeof(buf), "%d:%02d%s", display_hour, minute, ampm);
       return {buf};
-    update_interval: 120s
+    update_interval: 60s  # Increased from 120s for better responsiveness
     entity_category: diagnostic
 
   - platform: template
     name: "Filter 1 Schedule"
     id: spa_filter1_schedule
     lambda: |-
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       // Get filter timing from the spa object
       int start_hour = id(spa)->get_filter1_start_hour();
       int start_minute = id(spa)->get_filter1_start_minute();
@@ -461,13 +489,16 @@ text_sensor:
                start_display_hour, start_minute, start_ampm,
                end_display_hour, end_minute, end_ampm);
       return {buf};
-    update_interval: 60s
+    update_interval: 120s  # Increased from 60s
     entity_category: diagnostic
 
   - platform: template
     name: "Filter 2 Schedule"
     id: spa_filter2_schedule
     lambda: |-
+      if (!id(spa)->is_communicating()) {
+        return {};
+      }
       // Get filter timing from the spa object
       int start_hour = id(spa)->get_filter2_start_hour();
       int start_minute = id(spa)->get_filter2_start_minute();
@@ -522,7 +553,7 @@ text_sensor:
                start_display_hour, start_minute, start_ampm,
                end_display_hour, end_minute, end_ampm);
       return {buf};
-    update_interval: 60s
+    update_interval: 120s  # Increased from 60s
     entity_category: diagnostic
 
 # =============================================================================
@@ -536,7 +567,7 @@ button:
     id: device_restart
     entity_category: config
 
-  # Spa Controls
+  # Spa Controls - Optimized with better error handling
   - platform: template
     name: "Sync Spa Time"
     id: spa_time_sync
@@ -544,6 +575,10 @@ button:
     on_press:
       then:
         - lambda: |-
+            if (!id(spa)->is_communicating()) {
+              ESP_LOGW("TIME_SYNC", "Cannot sync time - spa not communicating");
+              return;
+            }
             auto now = id(sntp_time).now();
             int hour = now.hour;
             int minute = now.minute;
@@ -572,22 +607,22 @@ button:
     on_press:
       then:
         - lambda: |-
+            if (!id(spa)->is_communicating()) {
+              ESP_LOGW("PUMP_CONTROL", "Cannot control pump - spa not communicating");
+              return;
+            }
             auto current_speed = id(spa)->get_current_state()->pump1;
-            ESP_LOGD("PUMP_CONTROL", "Pump 1 current speed: %d", current_speed);
             
             if (current_speed == 0) {
               // OFF → LOW
-              ESP_LOGD("PUMP_CONTROL", "Turning Pump 1 ON (LOW)");
               id(spa_pump1_control).turn_on();
             } else if (current_speed == 1) {
               // LOW → HIGH (turn off then on again)
-              ESP_LOGD("PUMP_CONTROL", "Cycling Pump 1 to HIGH");
               id(spa_pump1_control).turn_off();
               delay(100);
               id(spa_pump1_control).turn_on();
             } else if (current_speed == 2) {
               // HIGH → OFF
-              ESP_LOGD("PUMP_CONTROL", "Turning Pump 1 OFF");
               id(spa_pump1_control).turn_off();
             }
 
@@ -598,16 +633,17 @@ button:
     on_press:
       then:
         - lambda: |-
+            if (!id(spa)->is_communicating()) {
+              ESP_LOGW("PUMP_CONTROL", "Cannot control pump - spa not communicating");
+              return;
+            }
             auto current_speed = id(spa)->get_current_state()->pump2;
-            ESP_LOGD("PUMP_CONTROL", "Pump 2 current speed: %d", current_speed);
             
             if (current_speed == 0) {
               // OFF → ON
-              ESP_LOGD("PUMP_CONTROL", "Turning Pump 2 ON");
               id(spa_pump2_control).turn_on();
             } else {
               // ON → OFF
-              ESP_LOGD("PUMP_CONTROL", "Turning Pump 2 OFF");
               id(spa_pump2_control).turn_off();
             }
 
@@ -618,16 +654,17 @@ button:
     on_press:
       then:
         - lambda: |-
+            if (!id(spa)->is_communicating()) {
+              ESP_LOGW("LIGHT_CONTROL", "Cannot control light - spa not communicating");
+              return;
+            }
             auto light_state = id(spa)->get_current_state()->light;
-            ESP_LOGD("LIGHT_CONTROL", "Light current state: %d", light_state);
             
             if (light_state == 0) {
               // OFF → ON
-              ESP_LOGD("LIGHT_CONTROL", "Turning Light ON");
               id(spa_light_control).turn_on();
             } else {
               // ON → OFF
-              ESP_LOGD("LIGHT_CONTROL", "Turning Light OFF");
               id(spa_light_control).turn_off();
             }
 
@@ -636,10 +673,10 @@ button:
 # =============================================================================
 
 interval:
-  - interval: 60s
+  - interval: 120s  # Increased from 60s for better performance
     then:
       - logger.log: "Spa communication check - monitoring for stability" 
-  - interval: 48h
+  - interval: 72h  # Increased from 48h for less frequent restarts
     then:
       - logger.log: "Auto-restarting device for stability"
       - button.press: device_restart

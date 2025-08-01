@@ -12,6 +12,11 @@ void BalboaSpaSensors::set_parent(BalboaSpa *parent) {
 }
 
 void BalboaSpaSensors::update(SpaState* spaState) {
+    // Early return if parent is null or not communicating
+    if (parent == nullptr || !parent->is_communicating()) {
+        return;
+    }
+
     uint8_t sensor_state_value;
 
     switch (sensor_type)
@@ -90,11 +95,11 @@ void BalboaSpaSensors::update(SpaState* spaState) {
             sensor_state_value = parent->get_filter2_current_runtime_minutes();
             break;
         default:
-            ESP_LOGD(TAG, "Spa/Sensors/UnknownSensorType: SensorType Number: %d", sensor_type);
-            // Unknown enum value. Ignore
+            ESP_LOGD(TAG, "Unknown sensor type: %d", sensor_type);
             return;
     }
 
+    // Only publish if state has changed
     if(this->state != sensor_state_value)
     {
         this->publish_state(sensor_state_value);
