@@ -267,7 +267,7 @@ All entities are automatically discovered by Home Assistant when using the ESPHo
 
 ### Dashboard Examples
 
-Check out the `examples/dashboards/` directory for complete dashboard configurations:
+Check out the [📱 Dashboard Examples](docs/examples/dashboards/) for complete dashboard configurations:
 
 - **`spa-dashboard-example.md`**: Detailed description of a beautiful spa dashboard
 - **`spa-dashboard.yaml`**: Complete YAML configuration for a mobile-optimized dashboard
@@ -380,6 +380,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📚 Additional Resources
 
+- **[📖 Full Documentation](docs/README.md)** - Comprehensive setup and configuration guides
 - [ESPHome Documentation](https://esphome.io/)
 - [Home Assistant Documentation](https://www.home-assistant.io/)
 - [Balboa Spa Manuals](https://www.balboawatergroup.com/support)

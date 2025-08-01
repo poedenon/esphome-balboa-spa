@@ -40,7 +40,7 @@ jobs:
         # Check if documentation files exist
         test -f README.md
         test -f LICENSE
-        test -f home_assistant_entity_organization.yaml
+        test -f docs/configuration/home_assistant_entity_organization.yaml
         
   build:
     runs-on: ubuntu-latest
