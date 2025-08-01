@@ -95,7 +95,7 @@ Home Assistant configuration examples showing:
 ## Migration Steps
 
 ### 1. Update ESPHome Configuration
-1. Replace your current `esphome-atomlite-balboa-spa.yaml` with `esphome-atomlite-balboa-spa-named.yaml`
+1. Replace your current `esphome-balboa-spa.yaml` with `esphome-balboa-spa-named.yaml`
 2. Update your `secrets.yaml` file if needed
 3. Compile and upload the new configuration
 

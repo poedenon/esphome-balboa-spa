@@ -1,138 +1,78 @@
-# Balboa Spa Monitor - ESPHome Component
+# Balboa Spa ESPHome Component
 
-A comprehensive ESPHome component for monitoring and controlling Balboa spa systems via RS485 communication. This component is designed to work with any ESP32 or ESP8266 board and RS485 converter.
+A comprehensive ESPHome component for monitoring and controlling Balboa spa systems via RS485 communication. This component provides full integration with Home Assistant for spa automation and monitoring.
 
-## Features
+## 🚀 Features
 
-- **Full Spa Monitoring**: Temperature, pump states, filter cycles, heat state, circulation, rest mode
-- **Climate Control**: Direct temperature control through Home Assistant
-- **Pump Control**: Individual control of spa pumps with speed cycling
-- **Light Control**: Spa light on/off functionality
-- **Filter Monitoring**: Real-time filter cycle status, runtime tracking, and schedule display
-- **Time Synchronization**: Automatic spa clock synchronization
-- **Comprehensive Diagnostics**: Extensive debug sensors and binary sensors
-- **Hardware Agnostic**: Works with any ESP32/ESP8266 board and RS485 converter
+- **🌡️ Full Spa Monitoring**: Temperature, pump states, filter cycles, heat state, circulation, rest mode
+- **🎛️ Climate Control**: Direct temperature control through Home Assistant
+- **⚡ Pump Control**: Individual control of spa pumps with speed cycling
+- **💡 Light Control**: Spa light on/off functionality
+- **🔧 Filter Monitoring**: Real-time filter cycle status, runtime tracking, and schedule display
+- **⏰ Time Synchronization**: Automatic spa clock synchronization
+- **🔍 Comprehensive Diagnostics**: Extensive debug sensors and binary sensors
+- **🔌 Hardware Agnostic**: Works with any ESP32/ESP8266 board and RS485 converter
 
-## Hardware Requirements
+## 📋 Requirements
 
-### Required Components
+### Hardware
 - **ESP32 or ESP8266 board** (any compatible board)
 - **RS485 converter** (MAX485, SN75176, Tail485, or similar)
 - **Wiring** to connect the RS485 converter to your spa's communication port
 
-### Supported Boards
-- **ESP32**: esp32dev, esp32-s3-devkitc-1, m5stack-atom, esp32-c3-devkitm-1, etc.
-- **ESP8266**: esp01_1m, esp01, nodemcuv2, wemos_d1_mini32, etc.
+### Software
+- **ESPHome** (latest version recommended)
+- **Home Assistant** (optional, for full integration)
 
-### RS485 Converters
-- MAX485, SN75176, Tail485, or any RS485 converter
-- Supports both 2-wire and 3-wire (with direction control) configurations
+## 🛠️ Quick Start
 
-## Quick Setup
+### 1. Install the Component
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/yourusername/BalboaSpa-esphome.git
-cd BalboaSpa-esphome
-```
-
-### 2. Configure Your Hardware
-Copy the secrets template and configure your hardware:
-
-```bash
-cp secrets_template.txt secrets.yaml
-```
-
-Edit `secrets.yaml` with your specific hardware configuration:
+#### Option A: External Components (Recommended)
+Add to your ESPHome configuration:
 
 ```yaml
-# =============================================================================
-# HARDWARE CONFIGURATION
-# =============================================================================
-
-# Board Configuration
-board_type: m5stack-atom  # Change to your board type
-framework_type: arduino   # arduino for most boards
-
-# RS485/UART Configuration
-uart_tx_pin: GPIO26       # Change to your TX pin
-uart_rx_pin: GPIO32       # Change to your RX pin
-uart_baud_rate: 115200    # Usually 115200 for Balboa spas
-uart_de_pin: null         # Set to pin number if using direction control
-
-# =============================================================================
-# NETWORK CONFIGURATION
-# =============================================================================
-wifi_ssid: "YourWiFiSSID"
-wifi_password: "YourWiFiPassword"
-
-# =============================================================================
-# DEVICE CONFIGURATION
-# =============================================================================
-device_name: "balboa-spa-monitor"
-friendly_name: "Balboa Spa Monitor"
-temperature_scale: "F"    # F or C
-timezone: "America/Chicago"
-
-# =============================================================================
-# SECURITY CONFIGURATION
-# =============================================================================
-api_encryption_key: "your_32_character_encryption_key_here"
-
-# =============================================================================
-# MQTT CONFIGURATION
-# =============================================================================
-mqtt_broker: "your_mqtt_broker_ip"
-mqtt_port: 1883
-mqtt_username: "your_mqtt_username"
-mqtt_password: "your_mqtt_password"
+external_components:
+  - source: https://github.com/poedenon/esphome-balboa-spa
+    components: [balboa_spa]
 ```
 
-### 3. Common Hardware Configurations
+#### Option B: Manual Installation
+1. Clone this repository
+2. Copy the `components/balboa_spa` folder to your ESPHome configuration directory
+3. Add to your ESPHome configuration:
 
-#### M5Stack Atom Lite (Default)
 ```yaml
-board_type: m5stack-atom
-framework_type: arduino
-uart_tx_pin: GPIO26
-uart_rx_pin: GPIO32
-uart_baud_rate: 115200
-uart_de_pin: null
+external_components:
+  - source: ./components
+    components: [balboa_spa]
 ```
 
-#### ESP32 DevKit
+### 2. Basic Configuration
+
+Add this to your ESPHome configuration file:
+
 ```yaml
-board_type: esp32dev
-framework_type: arduino
-uart_tx_pin: GPIO17
-uart_rx_pin: GPIO16
-uart_baud_rate: 115200
-uart_de_pin: null
+# Balboa Spa Component
+balboa_spa:
+  id: spa
+  uart_id: spa_uart_bus
+  spa_temp_scale: "F"  # or "C"
+
+# UART Configuration
+uart:
+  id: spa_uart_bus
+  tx_pin: GPIO26  # Change to your TX pin
+  rx_pin: GPIO32  # Change to your RX pin
+  baud_rate: 115200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
 ```
 
-#### ESP8266 NodeMCU
-```yaml
-board_type: nodemcuv2
-framework_type: arduino
-uart_tx_pin: GPIO1
-uart_rx_pin: GPIO3
-uart_baud_rate: 115200
-uart_de_pin: null
-```
+### 3. Hardware Setup
 
-#### ESP32 with Direction Control
-```yaml
-board_type: esp32dev
-framework_type: arduino
-uart_tx_pin: GPIO17
-uart_rx_pin: GPIO16
-uart_baud_rate: 115200
-uart_de_pin: GPIO25  # Direction control pin
-```
-
-### 4. Wiring Instructions
-
-#### Basic 2-Wire RS485 Setup
+#### Wiring Diagram
 ```
 ESP32/ESP8266    RS485 Converter    Balboa Spa
 TX (GPIO26)  --> A+ (or DI)
@@ -141,53 +81,135 @@ GND         --> GND
 3.3V/5V     --> VCC
 ```
 
-#### 3-Wire RS485 with Direction Control
-```
-ESP32/ESP8266    RS485 Converter    Balboa Spa
-TX (GPIO26)  --> DI
-RX (GPIO32)  --> RO
-DE (GPIO25)  --> DE/RE
-GND         --> GND
-3.3V/5V     --> VCC
-```
+#### Common Pin Configurations
 
-### 5. Compile and Upload
+| Board | TX Pin | RX Pin | Notes |
+|-------|--------|--------|-------|
+| M5Stack Atom | GPIO26 | GPIO32 | Default configuration |
+| ESP32 DevKit | GPIO17 | GPIO16 | Standard ESP32 pins |
+| ESP8266 NodeMCU | GPIO1 | GPIO3 | Standard ESP8266 pins |
+
+### 4. Compile and Upload
+
 ```bash
-esphome run esphome-atomlite-balboa-spa.yaml
+esphome run your_config.yaml
 ```
 
-## Configuration Options
+## 📖 Full Configuration Example
 
-### Board Types
-Common ESP32 board types:
-- `esp32dev` - Generic ESP32 DevKit
-- `esp32-s3-devkitc-1` - ESP32-S3 DevKit
-- `m5stack-atom` - M5Stack Atom Lite
-- `esp32-c3-devkitm-1` - ESP32-C3 DevKit
+```yaml
+esphome:
+  name: balboa-spa-monitor
+  friendly_name: "Balboa Spa Monitor"
 
-Common ESP8266 board types:
-- `esp01_1m` - ESP-01 with 1MB flash
-- `esp01` - ESP-01
-- `nodemcuv2` - NodeMCU v2
-- `wemos_d1_mini32` - WeMos D1 Mini
+esp32:
+  board: m5stack-atom
+  framework:
+    type: arduino
 
-### Pin Configuration
-- **TX Pin**: GPIO pin connected to RS485 converter's transmit input
-- **RX Pin**: GPIO pin connected to RS485 converter's receive output
-- **DE Pin**: GPIO pin for direction control (optional, set to `null` if not used)
+# UART Configuration
+uart:
+  id: spa_uart_bus
+  tx_pin: GPIO26
+  rx_pin: GPIO32
+  baud_rate: 115200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
 
-### Baud Rate
-Most Balboa spas use 115200 baud rate. If your spa uses a different rate, change `uart_baud_rate` accordingly.
+# Balboa Spa Component
+balboa_spa:
+  id: spa
+  uart_id: spa_uart_bus
+  spa_temp_scale: "F"
 
-## Available Entities
+# Climate Control
+climate:
+  - platform: balboa_spa
+    balboa_spa_id: spa
+    name: "Spa Thermostat"
+    id: spa_thermostat
+    visual:
+      min_temperature: 79 °F
+      max_temperature: 104 °F  
+      temperature_step: 1.0 °F
+
+# Switch Controls
+switch:
+  - platform: balboa_spa
+    balboa_spa_id: spa
+    jet1:
+      name: "Spa Pump 1"
+      id: spa_pump1_control
+      icon: "mdi:pump"
+      entity_category: diagnostic
+    jet2:
+      name: "Spa Pump 2"
+      id: spa_pump2_control
+      icon: "mdi:pump"
+      entity_category: diagnostic
+    light:
+      name: "Spa Light"
+      id: spa_light_control
+      icon: "mdi:lightbulb"
+      entity_category: diagnostic
+
+# Sensors
+sensor:
+  - platform: balboa_spa
+    balboa_spa_id: spa
+    heatstate:
+      name: "Spa Heat State"
+      id: spa_heat_state
+      icon: "mdi:thermometer"
+    circulation:
+      name: "Spa Circulation"
+      id: spa_circulation
+      icon: "mdi:rotate-3d-variant"
+    restmode:
+      name: "Spa Rest Mode"
+      id: spa_rest_mode
+      icon: "mdi:sleep"
+
+# Binary Sensors
+binary_sensor:
+  - platform: balboa_spa
+    balboa_spa_id: spa
+    filter1_active:
+      name: "Filter 1 Active"
+      id: spa_filter1_active
+      icon: "mdi:filter"
+      entity_category: diagnostic
+    filter2_active:
+      name: "Filter 2 Active"
+      id: spa_filter2_active
+      icon: "mdi:filter"
+      entity_category: diagnostic
+
+# WiFi Configuration
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+# API for Home Assistant
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+# OTA Updates
+ota:
+  - platform: esphome
+```
+
+## 🎯 Available Entities
 
 ### Climate
-- **Spa Thermostat**: Control spa temperature (79-110°F)
+- **Spa Thermostat**: Control spa temperature (79-104°F)
 
 ### Switches
-- **Spa Pump 1**: Control pump 1 (hidden, diagnostic)
-- **Spa Pump 2**: Control pump 2 (hidden, diagnostic)
-- **Spa Light**: Control spa light (hidden, diagnostic)
+- **Spa Pump 1**: Control pump 1 (diagnostic category)
+- **Spa Pump 2**: Control pump 2 (diagnostic category)
+- **Spa Light**: Control spa light (diagnostic category)
 
 ### Sensors
 - **Spa Heat State**: Current heating status
@@ -195,129 +217,175 @@ Most Balboa spas use 115200 baud rate. If your spa uses a different rate, change
 - **Spa Rest Mode**: Rest mode status
 - **Spa Clock Hour/Minute**: Spa's internal clock
 - **Pump Speeds**: Individual pump speed indicators
-- **WiFi Signal**: WiFi signal strength
-- **Uptime**: Device uptime
-
-### Filter Sensors
-- **Filter 1/2 Schedule**: Display filter schedules in 12-hour format (e.g., "12:00pm - 4:00pm")
-- **Filter 1/2 Runtime Hours**: Total accumulated runtime hours
-- **Filter 1/2 Cycles Completed**: Number of completed filter cycles
-- **Filter 1/2 Current Runtime**: Current active runtime in minutes
 
 ### Binary Sensors
-- **Device Status**: Online/offline status
-- **Filter 1 Running**: Real-time filter 1 running status
-- **Filter 2 Running**: Real-time filter 2 running status
 - **Filter 1/2 Active**: Filter enable/disable status
+- **Filter 1/2 Running**: Real-time filter running status
 - **Pump Running States**: Individual pump running indicators
 - **Light Status**: Light on/off status
 
-### Buttons
-- **Restart**: Restart the device
-- **Sync Spa Time**: Synchronize spa clock with device time
-- **Pump Controls**: Cycle pump states and toggle controls
-- **Light Toggle**: Toggle spa light
-- **Test Filter Settings**: Log current filter status and schedules
-- **Request Filter Settings**: Send filter configuration request to spa
+### Template Sensors (Optional)
+The component also provides template sensors for:
+- **Filter Schedules**: Display filter schedules in readable format
+- **Spa Time Display**: Current spa time in 12-hour format
+- **Pump Status**: Combined pump status information
 
-## Troubleshooting
+## 🔧 Configuration Options
+
+### Temperature Scale
+```yaml
+balboa_spa:
+  spa_temp_scale: "F"  # Fahrenheit
+  # or
+  spa_temp_scale: "C"  # Celsius
+```
+
+### UART Configuration
+```yaml
+uart:
+  id: spa_uart_bus
+  tx_pin: GPIO26        # Transmit pin
+  rx_pin: GPIO32        # Receive pin
+  baud_rate: 115200     # Communication speed
+  data_bits: 8          # Data bits
+  parity: NONE          # Parity
+  stop_bits: 1          # Stop bits
+  # Optional: Direction control for 3-wire RS485
+  de_pin: GPIO25        # Direction control pin
+```
+
+### Polling Intervals
+The component uses optimized polling intervals for better performance:
+- Temperature sensors: 5-30 seconds
+- System sensors: 300 seconds
+- Communication checks: 120 seconds
+
+## 🏠 Home Assistant Integration
+
+### Automatic Discovery
+All entities are automatically discovered by Home Assistant when using the ESPHome integration.
+
+### Dashboard Examples
+
+Check out the `examples/dashboards/` directory for complete dashboard configurations:
+
+- **`spa-dashboard-example.md`**: Detailed description of a beautiful spa dashboard
+- **`spa-dashboard.yaml`**: Complete YAML configuration for a mobile-optimized dashboard
+
+#### Basic Spa Control
+```yaml
+type: vertical-stack
+cards:
+  - type: thermostat
+    entity: climate.spa_thermostat
+    name: "Spa Temperature"
+  - type: horizontal-stack
+    cards:
+      - type: button
+        entity: switch.spa_pump1_control
+        name: "Pump 1"
+        icon: mdi:pump
+      - type: button
+        entity: switch.spa_pump2_control
+        name: "Pump 2"
+        icon: mdi:pump
+      - type: button
+        entity: switch.spa_light_control
+        name: "Light"
+        icon: mdi:lightbulb
+```
+
+#### Filter Status
+```yaml
+type: entities
+title: "Filter Status"
+entities:
+  - entity: binary_sensor.filter1_active
+    name: "Filter 1 Active"
+  - entity: binary_sensor.filter1_running
+    name: "Filter 1 Running"
+  - entity: binary_sensor.filter2_active
+    name: "Filter 2 Active"
+  - entity: binary_sensor.filter2_running
+    name: "Filter 2 Running"
+```
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
 #### No Communication with Spa
-1. Check wiring connections
-2. Verify baud rate (usually 115200)
-3. Check RS485 converter power
-4. Verify pin assignments in `secrets.yaml`
+1. **Check wiring connections**
+   - Verify TX/RX pins are connected correctly
+   - Ensure proper power to RS485 converter
+2. **Verify baud rate**
+   - Most Balboa spas use 115200 baud
+3. **Check pin assignments**
+   - Ensure pins match your hardware configuration
+
+#### Temperature Display Issues
+1. **Check temperature scale configuration**
+   - Verify `spa_temp_scale` matches your spa's setting
+2. **Enable debug logging**
+   - Set logger level to DEBUG for detailed information
+3. **Check communication status**
+   - Verify spa is responding to commands
 
 #### Compilation Errors
-1. Ensure board type is correct
-2. Check framework type (usually `arduino`)
-3. Verify all required secrets are set
+1. **Verify component installation**
+   - Ensure external_components is configured correctly
+2. **Check board type**
+   - Verify board type matches your hardware
+3. **Update ESPHome**
+   - Use latest ESPHome version
 
-#### WiFi Connection Issues
-1. Check WiFi credentials
-2. Verify WiFi signal strength
-3. Check for special characters in passwords
+### Debug Information
 
-### Debug Sensors
-The configuration includes extensive debug sensors that can help troubleshoot issues:
-- Status byte sensors (16-19)
-- Pump interdependency sensor
-- Raw jet state sensors
-
-### Logs
-Enable debug logging by changing the logger level in the configuration:
+Enable debug logging:
 ```yaml
 logger:
-  level: DEBUG  # Change from INFO to DEBUG
+  level: DEBUG
+  logs:
+    balboa_spa: DEBUG
 ```
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Home Assistant Dashboard Examples
-
-### Filter Status Cards
-For displaying filter status in your Home Assistant dashboard, you can use simple markdown cards:
-
-#### Filter 1 Status Card
-```yaml
-type: markdown
-content: >
-  **Filter 1 Status**
-  
-  {% set filter_running = states('binary_sensor.esphome_web_bb4e14_filter_1_running') %}
-  {% set schedule = states('sensor.esphome_web_bb4e14_filter_1_schedule') %}
-  
-  {% if filter_running == 'on' %}
-  🟢 **RUNNING** | {{ schedule }}
-  {% else %}
-  🔵 **INACTIVE** | {{ schedule }}
-  {% endif %}
-```
-
-#### Filter 2 Status Card
-```yaml
-type: markdown
-content: >
-  **Filter 2 Status**
-  
-  {% set filter_running = states('binary_sensor.esphome_web_bb4e14_filter_2_running') %}
-  {% set filter_enabled = states('binary_sensor.esphome_web_bb4e14_filter2_active') %}
-  {% set schedule = states('sensor.esphome_web_bb4e14_filter_2_schedule') %}
-  
-  {% if filter_running == 'on' %}
-  🟢 **RUNNING** | {{ schedule }}
-  {% elif filter_enabled == 'on' %}
-  🔵 **INACTIVE** | {{ schedule }}
-  {% else %}
-  ⚫ **DISABLED** | {{ schedule }}
-  {% endif %}
-```
-
-**Note**: Replace `esphome_web_bb4e14` with your actual device name from the ESPHome configuration.
-
-## Support
+### Support
 
 For issues and questions:
 1. Check the troubleshooting section
-2. Review the debug sensors
-3. Open an issue on GitHub with detailed information about your setup
+2. Review the debug sensors in Home Assistant
+3. Open an issue on GitHub with:
+   - Your ESPHome configuration
+   - Hardware setup details
+   - Error logs
 
-## Acknowledgments
+## 🤝 Contributing
 
-- Based on the original Balboa spa ESPHome component
-- Adapted for hardware flexibility and ease of use
-- Tested with various ESP32 and ESP8266 boards
-- Enhanced with comprehensive filter monitoring capabilities
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Original Work**: Based on [dhWasabi's M5Tough-BalboaSpa-esphome](https://github.com/dhWasabi/M5Tough-BalboaSpa-esphome) repository
+- **Enhancements**: Enhanced with comprehensive filter monitoring capabilities
+- **Optimizations**: Optimized for performance and reliability
+- **Testing**: Tested with various ESP32 and ESP8266 boards
+
+## 📚 Additional Resources
+
+- [ESPHome Documentation](https://esphome.io/)
+- [Home Assistant Documentation](https://www.home-assistant.io/)
+- [Balboa Spa Manuals](https://www.balboawatergroup.com/support)
+- [Original Repository](https://github.com/dhWasabi/M5Tough-BalboaSpa-esphome) - dhWasabi's M5Tough-BalboaSpa-esphome
+
+---
+
+**Note**: This component is designed for personal use. Always follow your spa manufacturer's guidelines and safety instructions.
 

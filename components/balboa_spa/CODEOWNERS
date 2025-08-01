@@ -1,0 +1,12 @@
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence,
+# @global-owner1 and @global-owner2 will be requested for
+# review when someone opens a pull request.
+*       @poedenon
+
+# Order is important; the last matching pattern takes precedence
+# over the first matching pattern.
+
+# These owners will be the default owners for everything in the
+# balboa_spa component directory.
+/components/balboa_spa/ @poedenon 

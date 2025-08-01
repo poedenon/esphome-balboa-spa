@@ -1,0 +1,240 @@
+# Spa Dashboard Configuration
+# This is the actual working configuration that matches the screenshot
+# Copy this configuration to your Home Assistant dashboard
+
+views:
+  - icon: mdi:home
+    sections:
+      - type: grid
+        cards:
+          # Temperature Control with Thermostat Card
+          - type: thermostat
+            entity: climate.esphome_web_bb4e14_spa_thermostat
+            show_current_as_primary: false
+            name: Spa Temperature
+            features:
+              - style: icons
+                type: climate-preset-modes
+                
+          # Pump 1 Control with Speed Display
+          - type: custom:mushroom-template-card
+            primary: Pump 1
+            secondary: >
+              {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_1_speed') | int(0) %}
+              {% if speed == 0 %}
+                OFF
+              {% elif speed == 1 %}
+                LOW
+              {% elif speed == 2 %}
+                HIGH
+              {% else %}
+                Unknown
+              {% endif %}
+            icon: mdi:pump
+            icon_color: >
+              {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_1_speed') | int(0) %}
+              {% if speed == 0 %}
+                red
+              {% elif speed == 1 %}
+                orange
+              {% elif speed == 2 %}
+                green
+              {% else %}
+                grey
+              {% endif %}
+            fill_container: true
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.esphome_web_bb4e14_pump_1_cycle_state
+                
+          # Pump 2 Control
+          - type: custom:mushroom-template-card
+            primary: Pump 2
+            secondary: >
+              {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_2_speed') | int(0) %}
+              {% if speed == 0 %}
+                OFF
+              {% else %}
+                ON
+              {% endif %}
+            icon: mdi:pump
+            fill_container: true
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.esphome_web_bb4e14_pump_2_toggle
+            icon_color: >-
+              {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_2_speed') | int(0) %}
+              {% if speed == 0 %}
+                red
+              {% else %}
+                green
+              {% endif %}
+            card_mod:
+              style: |
+                :host {
+                  --icon-color:
+                    {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_2_speed') | int(0) %}
+                    {% if speed == 0 %}
+                      #ff0000;
+                    {% else %}
+                      #00ff00;
+                    {% endif %}
+                  ;
+                  --secondary-text-color:
+                    {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_2_speed') | int(0) %}
+                    {% if speed == 0 %}
+                      #ff0000;
+                    {% else %}
+                      #00ff00;
+                    {% endif %}
+                  ;
+                }
+                
+          # Spa Light Control
+          - type: custom:mushroom-template-card
+            primary: Spa Light
+            secondary: >
+              {% if is_state('binary_sensor.esphome_web_bb4e14_spa_light_running', 'on') %}
+                ON
+              {% else %}
+                OFF
+              {% endif %}
+            icon: mdi:lightbulb
+            icon_color: >
+              {% if is_state('binary_sensor.esphome_web_bb4e14_spa_light_running', 'on') %}
+                yellow
+              {% else %}
+                grey
+              {% endif %}
+            fill_container: true
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.esphome_web_bb4e14_spa_light_toggle
+            grid_options:
+              columns: 12
+              rows: 1
+              
+          # Spa Time Sync Display
+          - type: custom:mushroom-template-card
+            primary: Spa Time Sync
+            secondary: >
+              {% set spa_hour = states('sensor.esphome_web_bb4e14_spa_clock_hour') | int(0) %}
+              {% set spa_minute = states('sensor.esphome_web_bb4e14_spa_clock_minute') | int(0) %}
+              {% if spa_hour >= 0 and spa_hour <= 23 and spa_minute >= 0 and spa_minute <= 59 %}
+                {% if spa_hour == 0 %}
+                  {% set spa_time = "12:%02d" | format(spa_minute) + "am" %}
+                {% elif spa_hour == 12 %}
+                  {% set spa_time = "12:%02d" | format(spa_minute) + "pm" %}
+                {% elif spa_hour > 12 %}
+                  {% set spa_time = "%d:%02d" | format(spa_hour - 12, spa_minute) + "pm" %}
+                {% else %}
+                  {% set spa_time = "%d:%02d" | format(spa_hour, spa_minute) + "am" %}
+                {% endif %}
+              {% else %}
+                {% set spa_time = "--:--" %}
+              {% endif %}
+              {% set local_time = now().strftime('%I:%M %p') %}
+              Spa: {{ spa_time }} | Local: {{ local_time }}
+            icon: mdi:clock-edit
+            icon_color: grey
+            fill_container: true
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.esphome_web_bb4e14_sync_spa_time
+            grid_options:
+              columns: 12
+              rows: 1
+              
+          # Filter 1 Status
+          - type: custom:mushroom-template-card
+            primary: Filter 1
+            secondary: >
+              {% set filter_running = states('binary_sensor.esphome_web_bb4e14_filter_1_running') %}
+              {% set schedule = states('sensor.esphome_web_bb4e14_filter_1_schedule') %}
+              {% if filter_running == 'on' %}
+                RUNNING | {{ schedule }}
+              {% else %}
+                OFF | {{ schedule }}
+              {% endif %}
+            icon: mdi:filter
+            icon_color: >
+              {% if states('binary_sensor.esphome_web_bb4e14_filter_1_running') == 'on' %}
+                green
+              {% else %}
+                blue
+              {% endif %}
+            fill_container: true
+            grid_options:
+              columns: 6
+              rows: 1
+            multiline_secondary: false
+            tap_action:
+              action: none
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+              
+          # Filter 2 Status
+          - type: custom:mushroom-template-card
+            primary: Filter 2
+            secondary: >
+              {% set filter_running = states('binary_sensor.esphome_web_bb4e14_filter_2_running') %}
+              {% set filter_enabled = states('binary_sensor.esphome_web_bb4e14_filter_2_enabled') %}
+              {% set schedule = states('sensor.esphome_web_bb4e14_filter_2_schedule') %}
+              {% if filter_running == 'on' %}
+                RUNNING | {{ schedule }}
+              {% elif filter_enabled == 'on' %}
+                OFF | {{ schedule }}
+              {% else %}
+                DISABLED | {{ schedule }}
+              {% endif %}
+            icon: mdi:filter
+            icon_color: >
+              {% if states('binary_sensor.esphome_web_bb4e14_filter_2_running') == 'on' %}
+                green
+              {% elif states('binary_sensor.esphome_web_bb4e14_filter_2_enabled') == 'on' %}
+                blue
+              {% else %}
+                grey
+              {% endif %}
+            fill_container: true
+            grid_options:
+              columns: 6
+              rows: 1
+            tap_action:
+              action: none
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+              
+      # Stats Section
+      - type: grid
+        cards:
+          - type: heading
+            heading: Stats
+            heading_style: title
+            icon: mdi:chart-areaspline-variant
+    cards: []
+    type: sections
+    max_columns: 4
+
+# Required Custom Cards:
+# - mushroom-template-card: https://github.com/piitaya/lovelace-mushroom
+# - card-mod: https://github.com/thomasloven/lovelace-card-mod
+
+# Installation:
+# 1. Install HACS (Home Assistant Community Store)
+# 2. Add mushroom-template-card repository
+# 3. Add card-mod repository
+# 4. Install both custom cards
+# 5. Copy this configuration to your dashboard 

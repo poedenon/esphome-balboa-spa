@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install ESPHome
+      run: |
+        pip install esphome
+        
+    - name: Validate ESPHome configuration
+      run: |
+        esphome validate esphome-balboa-spa.yaml
+        
+    - name: Check component structure
+      run: |
+        # Check if component files exist
+        test -f components/balboa_spa/__init__.py
+        test -f components/balboa_spa/balboaspa.h
+        test -f components/balboa_spa/balboaspa.cpp
+        test -f components/balboa_spa/manifest.yaml
+        test -f components/balboa_spa/README.md
+        
+    - name: Check documentation
+      run: |
+        # Check if documentation files exist
+        test -f README.md
+        test -f LICENSE
+        test -f home_assistant_entity_organization.yaml
+        
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install ESPHome
+      run: |
+        pip install esphome
+        
+    - name: Build ESP32 configuration
+      run: |
+        esphome compile esphome-balboa-spa.yaml
+      env:
+        ESPHOME_NOGIT: 1 
