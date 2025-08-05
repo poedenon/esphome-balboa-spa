@@ -1,0 +1,399 @@
+# Spa Dashboard with Graphs Configuration
+# Based on actual user configuration
+# Copy this configuration to your Home Assistant dashboard
+
+views:
+  - icon: mdi:home
+    sections:
+      - type: grid
+        cards:
+          # Temperature Control with Thermostat Card
+          - type: thermostat
+            entity: climate.esphome_web_bb4e14_spa_thermostat
+            show_current_as_primary: false
+            name: Spa Temperature
+            features:
+              - style: icons
+                type: climate-preset-modes
+                
+          # Pump 1 Control with Speed Display
+          - type: custom:mushroom-template-card
+            primary: Pump 1
+            secondary: >
+              {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_1_speed') | int(0) %}
+              {% if speed == 0 %}
+                OFF
+              {% elif speed == 1 %}
+                LOW
+              {% elif speed == 2 %}
+                HIGH
+              {% else %}
+                Unknown
+              {% endif %}
+            icon: mdi:pump
+            icon_color: >
+              {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_1_speed') | int(0) %}
+              {% if speed == 0 %}
+                red
+              {% elif speed == 1 %}
+                orange
+              {% elif speed == 2 %}
+                green
+              {% else %}
+                grey
+              {% endif %}
+            fill_container: true
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.esphome_web_bb4e14_pump_1_cycle_state
+                
+          # Pump 2 Control
+          - type: custom:mushroom-template-card
+            primary: Pump 2
+            secondary: >
+              {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_2_speed') | int(0) %}
+              {% if speed == 0 %}
+                OFF
+              {% else %}
+                ON
+              {% endif %}
+            icon: mdi:pump
+            fill_container: true
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.esphome_web_bb4e14_pump_2_toggle
+            icon_color: >-
+              {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_2_speed') | int(0) %}
+              {% if speed == 0 %}
+                red
+              {% else %}
+                green
+              {% endif %}
+            card_mod:
+              style: |
+                :host {
+                  --icon-color:
+                    {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_2_speed') | int(0) %}
+                    {% if speed == 0 %}
+                      #ff0000;
+                    {% else %}
+                      #00ff00;
+                    {% endif %}
+                  --secondary-text-color:
+                    {% set speed = states('sensor.esphome_web_bb4e14_spa_pump_2_speed') | int(0) %}
+                    {% if speed == 0 %}
+                      #ff0000;
+                    {% else %}
+                      #00ff00;
+                    {% endif %}
+                }
+                
+          # Spa Light Control
+          - type: custom:mushroom-template-card
+            primary: Spa Light
+            secondary: >
+              {% if is_state('binary_sensor.esphome_web_bb4e14_spa_light_running', 'on') %}
+                ON
+              {% else %}
+                OFF
+              {% endif %}
+            icon: mdi:lightbulb
+            icon_color: >
+              {% if is_state('binary_sensor.esphome_web_bb4e14_spa_light_running', 'on') %}
+                yellow
+              {% else %}
+                grey
+              {% endif %}
+            fill_container: true
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.esphome_web_bb4e14_spa_light_toggle
+            grid_options:
+              columns: 12
+              rows: 1
+              
+          # Spa Time Sync Display
+          - type: custom:mushroom-template-card
+            primary: Spa Time Sync
+            secondary: >
+              {% set spa_hour = states('sensor.esphome_web_bb4e14_spa_clock_hour') | int(0) %}
+              {% set spa_minute = states('sensor.esphome_web_bb4e14_spa_clock_minute') | int(0) %}
+              {% if spa_hour >= 0 and spa_hour <= 23 and spa_minute >= 0 and spa_minute <= 59 %}
+                {% if spa_hour == 0 %}
+                  {% set spa_time = "12:%02d" | format(spa_minute) + "am" %}
+                {% elif spa_hour == 12 %}
+                  {% set spa_time = "12:%02d" | format(spa_minute) + "pm" %}
+                {% elif spa_hour > 12 %}
+                  {% set spa_time = "%d:%02d" | format(spa_hour - 12, spa_minute) + "pm" %}
+                {% else %}
+                  {% set spa_time = "%d:%02d" | format(spa_hour, spa_minute) + "am" %}
+                {% endif %}
+              {% else %}
+                {% set spa_time = "--:--" %}
+              {% endif %}
+              {% set local_time = now().strftime('%I:%M %p') %}
+              Spa: {{ spa_time }} | Local: {{ local_time }}
+            icon: mdi:clock-edit
+            icon_color: grey
+            fill_container: true
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.esphome_web_bb4e14_sync_spa_time
+            grid_options:
+              columns: 12
+              rows: 1
+              
+          # Filter 1 Status
+          - type: custom:mushroom-template-card
+            primary: Filter 1
+            secondary: >
+              {% set filter_running = states('binary_sensor.esphome_web_bb4e14_filter_1_running') %}
+              {% set schedule = states('sensor.esphome_web_bb4e14_filter_1_schedule') %}
+              {% if filter_running == 'on' %}
+                RUNNING | {{ schedule }}
+              {% else %}
+                OFF | {{ schedule }}
+              {% endif %}
+            icon: mdi:filter
+            icon_color: >
+              {% if states('binary_sensor.esphome_web_bb4e14_filter_1_running') == 'on' %}
+                green
+              {% else %}
+                blue
+              {% endif %}
+            fill_container: true
+            grid_options:
+              columns: 6
+              rows: 1
+            multiline_secondary: false
+            tap_action:
+              action: none
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+              
+          # Filter 2 Status
+          - type: custom:mushroom-template-card
+            primary: Filter 2
+            secondary: >
+              {% set filter_running = states('binary_sensor.esphome_web_bb4e14_filter_2_running') %}
+              {% set filter_enabled = states('binary_sensor.esphome_web_bb4e14_filter_2_active') %}
+              {% set schedule = states('sensor.esphome_web_bb4e14_filter_2_schedule') %}
+              {% if filter_running == 'on' %}
+                RUNNING | {{ schedule }}
+              {% elif filter_enabled == 'on' %}
+                OFF | {{ schedule }}
+              {% else %}
+                DISABLED | {{ schedule }}
+              {% endif %}
+            icon: mdi:filter
+            icon_color: >
+              {% if states('binary_sensor.esphome_web_bb4e14_filter_2_running') == 'on' %}
+                green
+              {% elif states('binary_sensor.esphome_web_bb4e14_filter_2_active') == 'on' %}
+                blue
+              {% else %}
+                grey
+              {% endif %}
+            fill_container: true
+            grid_options:
+              columns: 6
+              rows: 1
+              
+      # Stats Section with Graphs
+      - type: grid
+        cards:
+          - type: heading
+            heading: Stats
+            heading_style: title
+            icon: mdi:chart-areaspline-variant
+            
+          # Temperature History Graph
+          - type: custom:mini-graph-card
+            entities:
+              - entity: climate.esphome_web_bb4e14_spa_thermostat
+                attribute: current_temperature
+                name: Current
+                color: var(--accent-color)
+              - entity: climate.esphome_web_bb4e14_spa_thermostat
+                attribute: temperature
+                name: Target
+                color: var(--primary-color)
+                show_line: true
+                show_points: true
+                line_width: 3
+            name: Spa Temperature
+            hours_to_show: 24
+            points_per_hour: 6
+            show:
+              labels: true
+              legend: true
+              
+          # Pump Running Status Graph
+          - type: custom:mini-graph-card
+            entities:
+              - entity: binary_sensor.esphome_web_bb4e14_spa_pump_1_running
+                name: Pump 1 Running
+                color: var(--accent-color)
+              - entity: binary_sensor.esphome_web_bb4e14_spa_pump_2_running
+                name: Pump 2 Running
+                color: var(--primary-color)
+            name: Pump 1 Status
+            hours_to_show: 24
+            points_per_hour: 60
+            aggregate_func: last
+            state_map:
+              - value: 'off'
+                label: Stopped
+              - value: 'on'
+                label: Running
+            y_axis:
+              min: 0
+              max: 1
+              labels:
+                - value: 0
+                  label: Stopped
+                - value: 1
+                  label: Running
+            color_thresholds:
+              - value: 0
+                color: '#ff0000'
+              - value: 1
+                color: '#00ff00'
+            show:
+              labels: true
+              legend: true
+              state: true
+              
+          # Pump Speed Graph
+          - type: custom:mini-graph-card
+            entities:
+              - entity: sensor.esphome_web_bb4e14_spa_pump_1_speed
+                name: Pump 1
+                color: var(--accent-color)
+              - entity: sensor.spa_pump_2_speed_adjusted
+                name: Pump 2
+                color: var(--primary-color)
+                transform: |
+                  return value > 0 ? 2 : 0;
+            name: Pump Speed
+            hours_to_show: 24
+            points_per_hour: 60
+            aggregate_func: last
+            state_map:
+              - value: 0
+                label: 'Off'
+              - value: 1
+                label: Low
+              - value: 2
+                label: High
+            y_axis:
+              min: 0
+              max: 2
+              labels:
+                - value: 0
+                  label: 'Off'
+                - value: 1
+                  label: Low
+                - value: 2
+                  label: High
+            show:
+              labels: true
+              legend: true
+              state: true
+              
+          # Heater Runtime Graph (30 Days)
+          - type: custom:mini-graph-card
+            entities:
+              - entity: sensor.esphome_web_bb4e14_spa_heat_state
+                name: Heater
+                color: var(--accent-color)
+            name: Heater Runtime (30 Days)
+            hours_to_show: 720
+            points_per_hour: 60
+            aggregate_func: sum
+            state_map:
+              - value: 0
+                label: 'Off'
+              - value: 1
+                label: 'On'
+            y_axis:
+              min: 0
+              max: 1440
+              labels:
+                - value: 0
+                  label: 0 min
+                - value: 720
+                  label: 12h
+                - value: 1440
+                  label: 24h
+            show:
+              labels: true
+              legend: true
+              state: true
+
+# Required Custom Cards:
+# - mushroom-template-card: https://github.com/piitaya/lovelace-mushroom
+# - card-mod: https://github.com/thomasloven/lovelace-card-mod
+# - mini-graph-card: https://github.com/kalkih/mini-graph-card
+
+# Required Template Sensors (add to configuration.yaml):
+# sensor:
+#   - platform: time_date
+#     display_options:
+#       - "time"
+#   - platform: template
+#     sensors:
+#       spa_pump_1_running_numeric:
+#         friendly_name: "Spa Pump 1 Running Numeric"
+#         unique_id: spa_pump_1_running_numeric_sensor
+#         unit_of_measurement: ""
+#         value_template: >-
+#           {% if is_state('binary_sensor.esphome_web_bb4e14_spa_pump_1_running', 'on') %}
+#             1
+#           {% else %}
+#             0
+#           {% endif %}
+#       
+#       spa_pump_2_speed_adjusted:
+#         friendly_name: "Spa Pump 2 Speed Adjusted"
+#         unique_id: spa_pump_2_speed_adjusted
+#         unit_of_measurement: ""
+#         value_template: >-
+#           {% set pump2_state = states('sensor.esphome_web_bb4e14_spa_pump_2_speed') | int(0) %}
+#           {% if pump2_state > 0 %}
+#             2
+#           {% else %}
+#             0
+#           {% endif %}
+
+# Installation:
+# 1. Install HACS (Home Assistant Community Store)
+# 2. Add custom card repositories:
+#    - piitaya/lovelace-mushroom
+#    - thomasloven/lovelace-card-mod
+#    - kalkih/mini-graph-card
+# 3. Install all custom cards
+# 4. Add the template sensors to your configuration.yaml
+# 5. Copy this dashboard configuration to your Home Assistant dashboard
+
+# Features:
+# - Temperature control with current vs target overlay
+# - Pump controls with speed display and color coding
+# - Spa light control
+# - Time synchronization display
+# - Filter status monitoring
+# - 24-hour temperature history
+# - 24-hour pump running status
+# - 24-hour pump speed visualization
+# - 30-day heater runtime tracking
+# - Mobile-optimized layout with grid options 
