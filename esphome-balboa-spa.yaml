@@ -106,13 +106,13 @@ time:
     timezone: !secret timezone
 
 external_components:
-  - source: ./components
-    components: [balboa_spa]
-  # - source:
-  #     type: git
-  #     url: https://github.com/brianfeucht/esphome-balboa-spa
-  #     ref: main
+  # - source: ./components
   #   components: [balboa_spa]
+  - source:
+      type: git
+      url: https://github.com/poedenon/esphome-balboa-spa
+      ref: main
+    components: [balboa_spa]
 
 # =============================================================================
 # BALBOA SPA COMPONENT CONFIGURATION
